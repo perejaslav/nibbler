@@ -1669,7 +1669,7 @@ let hub_props = {
 		let loader = NewFastPGNLoader(filename, (err, pgndata) => {
 			if (!err) {
 				pgndata.source = path.basename(filename);
-				this.handle_loaded_pgndata(pgndata);
+				this.handle_loaded_pgndata(pgndata, false);
 			} else {
 				console.log(err);
 			}
@@ -1678,37 +1678,78 @@ let hub_props = {
 		this.loaders.push(loader);
 	},
 
-	handle_loaded_pgndata: function(pgndata) {
+	handle_loaded_pgndata: function(pgndata, merge_into_current = false) {
 		if (!pgndata || pgndata.count() === 0) {
 			alert("No data found.");
 			return;
 		}
 		if (pgndata.count() === 1) {
-			let success = this.load_pgn_object(pgndata.getrecord(0));
+			let success = this.load_pgn_object(pgndata.getrecord(0), merge_into_current);
 			if (success) {
 				this.pgndata = pgndata;
 				this.pgn_choices_start = 0;
+				this.pgndata_merge_into_current = merge_into_current;
 			}
 		} else {
 			this.pgndata = pgndata;
 			this.pgn_choices_start = 0;
+			this.pgndata_merge_into_current = merge_into_current;
 			this.show_pgn_chooser();
 		}
 	},
 
-	load_pgn_object: function(o) {				// Returns true or false - whether this actually succeeded.
+	find_node_by_board: function(board, start_node = this.tree.root) {
+		if (!board || !start_node) {
+			return null;
+		}
+		if (start_node.board.compare(board)) {
+			return start_node;
+		}
+		for (let child of start_node.children) {
+			let hit = this.find_node_by_board(board, child);
+			if (hit) {
+				return hit;
+			}
+		}
+		return null;
+	},
 
-		let root_node;
+	merge_pgn_tree_into_node: function(target_node, imported_node) {
+		for (let imported_child of imported_node.children) {
+			let target_child = target_node.make_move(imported_child.move);
+			this.merge_pgn_tree_into_node(target_child, imported_child);
+		}
+	},
+
+	load_pgn_object: function(o, merge_into_current = false) {				// Returns true or false - whether this actually succeeded.
+
+		let imported_root;
 
 		try {
-			root_node = LoadPGNRecord(o);
+			imported_root = LoadPGNRecord(o);
 		} catch (err) {
 			alert(err);
 			return false;
 		}
 
-		this.tree.replace_tree(root_node);
-		this.position_changed(true, true);
+		if (!merge_into_current) {
+			this.tree.replace_tree(imported_root);
+			this.position_changed(true, true);
+			return true;
+		}
+
+		let anchor_node = this.find_node_by_board(imported_root.board);
+		if (!anchor_node) {
+			DestroyTree(imported_root);
+			alert("Could not merge PGN into current tree: start position not found.");
+			return false;
+		}
+
+		this.merge_pgn_tree_into_node(anchor_node, imported_root);
+		DestroyTree(imported_root);
+		this.tree.tree_version++;
+		this.tree.dom_from_scratch();
+		this.position_changed(false, true);
 
 		return true;
 	},
@@ -1836,7 +1877,7 @@ let hub_props = {
 		let loader = NewFastPGNLoader(buf, (err, pgndata) => {
 			if (!err) {
 				pgndata.source = "From clipboard";
-				this.handle_loaded_pgndata(pgndata);
+				this.handle_loaded_pgndata(pgndata, true);
 			} else {
 				console.log(err);
 			}
@@ -2109,7 +2150,7 @@ let hub_props = {
 		n = EventPathN(event, "pgn_chooser_");
 		if (typeof n === "number") {
 			if (this.pgndata && n >= 0 && n < this.pgndata.count()) {
-				this.load_pgn_object(this.pgndata.getrecord(n));
+				this.load_pgn_object(this.pgndata.getrecord(n), this.pgndata_merge_into_current);
 			}
 			return;
 		}

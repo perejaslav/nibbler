@@ -397,7 +397,7 @@ function menu_build() {
 				},
 				{
 					label: translate.t("Load FEN / PGN from clipboard"),
-					accelerator: "CommandOrControl+Shift+V",
+					accelerator: "CommandOrControl+V",
 					click: () => {
 						win.webContents.send("call", {
 							fn: "load_fen_or_pgn_from_string",
@@ -610,11 +610,6 @@ function menu_build() {
 					label: translate.t("Copy"),
 					accelerator: "CommandOrControl+C",
 					role: "copy",
-				},
-				{
-					label: translate.t("Paste"),
-					accelerator: "CommandOrControl+V",
-					role: "paste",
 				},
 				{
 					type: "separator"
