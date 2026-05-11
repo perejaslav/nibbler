@@ -8,7 +8,7 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: Automated test tasks are OPTIONAL - only include them if explicitly requested in the feature specification. Manual Electron verification tasks are REQUIRED for every behavior change.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -154,6 +154,7 @@ Examples of foundational tasks (adjust based on your project):
 - [ ] TXXX Code cleanup and refactoring
 - [ ] TXXX Performance optimization across all stories
 - [ ] TXXX [P] Additional unit tests (if requested) in tests/unit/
+- [ ] TXXX Manual verification from source with `cd files/src && electron .`, documenting exercised workflow and expected result
 - [ ] TXXX Security hardening
 - [ ] TXXX Run quickstart.md validation
 
@@ -245,6 +246,7 @@ With multiple developers:
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
+- Include manual Electron verification for each changed UI, engine, or config behavior
 - Verify tests fail before implementing
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently

@@ -8,3 +8,15 @@ start-opencode-agentmemory-local-v3.ps1
 docs/superpowers/
 
 .backup/
+
+node_modules/
+dist/
+build/
+*.log
+.env*
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+.vscode/
+.idea/

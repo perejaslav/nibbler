@@ -90,6 +90,15 @@
 - **FR-004**: System MUST [data requirement, e.g., "persist user preferences"]
 - **FR-005**: System MUST [behavior, e.g., "log all security events"]
 
+### Nibbler Compatibility Requirements *(mandatory for behavior changes)*
+
+- **NC-001**: Specification MUST identify affected Electron UI workflows and the
+  expected source-run verification path.
+- **NC-002**: Specification MUST identify affected Lc0/UCI engine workflows, or
+  state that no engine behavior is affected.
+- **NC-003**: Specification MUST identify affected user configuration fields, or
+  state that no configuration behavior is affected.
+
 *Example of marking unclear requirements:*
 
 - **FR-006**: System MUST authenticate users via [NEEDS CLARIFICATION: auth method not specified - email/password, SSO, OAuth?]

@@ -206,6 +206,57 @@ input[type=text]:focus {
 	outline: none;
 }
 
+.uci_options_dialog {
+	max-width: 900px;
+	white-space: normal;
+}
+
+.uci_option_help {
+	color: #999999;
+	margin: 0.5em 0 1em 0;
+}
+
+.uci_option_row {
+	border-top: 1px solid #222222;
+	display: grid;
+	gap: 0.5em;
+	grid-template-columns: minmax(12em, 20em) 1fr;
+	padding: 0.5em 0;
+}
+
+.uci_option_label {
+	color: #eeeeee;
+}
+
+.uci_option_control input,
+.uci_option_control select {
+	background: #101010;
+	border: 1px solid #444444;
+	color: #dddddd;
+	font-family: inherit;
+	font-size: inherit;
+}
+
+.uci_option_hint,
+.uci_option_readonly {
+	color: #999999;
+}
+
+.uci_option_error {
+	color: #ffaaaa;
+	grid-column: 2;
+}
+
+.uci_option_actions {
+	margin-top: 1em;
+}
+
+.uci_option_actions button {
+	font-family: inherit;
+	font-size: inherit;
+	margin-right: 0.5em;
+}
+
 td {
 	background-color: transparent;
 	background-size: contain;
