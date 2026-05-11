@@ -40,3 +40,8 @@ No build step needed for development. The app IS the source.
 
 ## Known Issues
 - Electron >9.4.4 causes minor glitches: https://github.com/rooklift/nibbler/issues/140
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

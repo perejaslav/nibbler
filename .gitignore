@@ -6,3 +6,5 @@ opencode.json
 opencode.json.bak
 start-opencode-agentmemory-local-v3.ps1
 docs/superpowers/
+
+.backup/
