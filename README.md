@@ -27,8 +27,9 @@ For prebuilt binary releases, see the [Releases](https://github.com/rooklift/nib
 
 * Added analysis toolbar with quick-access buttons for Go, Halt, Lock, Return, Auto-evaluate, navigation (Root/Back/Forward/End), Flip board, MultiPV adjustment, and Clear Focus.
 * `Ctrl+V` now loads FEN / PGN from the clipboard.
-* Pasting a PGN from the clipboard replaces the current game (previously it tried to merge, causing the paste to fail in most cases).
-* After pasting a game, Nibbler automatically jumps to the last move.
+* Fixed `Ctrl+V` clipboard loading so it works reliably from the renderer keyboard handler.
+* Pasting a PGN from the clipboard merges it into the current game tree as a variation.
+* After pasting a game, Nibbler automatically jumps to the last move of the pasted line.
 
 ## Installation - Windows / Linux
 

@@ -397,7 +397,6 @@ function menu_build() {
 				},
 				{
 					label: translate.t("Load FEN / PGN from clipboard"),
-					accelerator: "CommandOrControl+V",
 					click: () => {
 						win.webContents.send("call", {
 							fn: "load_fen_or_pgn_from_string",
