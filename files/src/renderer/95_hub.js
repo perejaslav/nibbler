@@ -220,6 +220,7 @@ let hub_props = {
 	set_behaviour_direct: function(s) {
 		this.leela_lock_node = (s === "analysis_locked") ? this.tree.node : null;
 		config.behaviour = s;
+		this.update_toolbar_state();
 	},
 
 	toggle_go: function() {
@@ -250,6 +251,8 @@ let hub_props = {
 		// If there's no search desired, changing params probably shouldn't start one. As of 1.8.3, when a search
 		// completes due to hitting the (normal) node limit, behaviour gets changed back to "halt" in one way or
 		// another (unless config.allow_stopped_analysis is set).
+
+		this.update_toolbar_state();
 	},
 
 	continue_auto_analysis: function() {
@@ -493,6 +496,7 @@ let hub_props = {
 
 		this.draw_statusbox();
 		this.draw_infobox();
+		this.update_toolbar_state();
 
 		this.grapher.draw(this.tree.node);
 	},
@@ -2122,6 +2126,51 @@ let hub_props = {
 		}
 	},
 
+	toolbar_click: function(event) {
+
+		switch (EventPathString(event, "toolbar_")) {
+		case "go":
+			this.set_behaviour("analysis_free");
+			return;
+		case "halt":
+			this.set_behaviour("halt");
+			return;
+		case "lock":
+			this.set_behaviour("analysis_locked");
+			return;
+		case "return":
+			this.return_to_lock();
+			return;
+		case "auto":
+			this.set_behaviour("auto_analysis");
+			return;
+		case "root":
+			this.goto_root();
+			return;
+		case "back":
+			this.prev();
+			return;
+		case "forward":
+			this.next();
+			return;
+		case "end":
+			this.goto_end();
+			return;
+		case "flip":
+			this.toggle_flip();
+			return;
+		case "clear_focus":
+			this.clear_searchmoves();
+			return;
+		case "multipv_down":
+			this.adjust_toolbar_multipv(-1);
+			return;
+		case "multipv_up":
+			this.adjust_toolbar_multipv(1);
+			return;
+		}
+	},
+
 	fullbox_click: function(event) {
 
 		let n;
@@ -2324,6 +2373,60 @@ let hub_props = {
 	clear_searchmoves: function() {
 		this.tree.node.searchmoves = [];
 		this.handle_search_params_change();
+	},
+
+	toolbar_multipv_value: function() {
+		let engine_entry = engineconfig[this.engine.filepath];
+		if (engine_entry && engine_entry.options && typeof engine_entry.options["MultiPV"] === "number") {
+			return engine_entry.options["MultiPV"];
+		}
+		return 1;
+	},
+
+	adjust_toolbar_multipv: function(delta) {
+		let current = this.toolbar_multipv_value();
+		let next = current + delta;
+
+		if (next < 1) {
+			next = 1;
+		}
+		if (next > 5) {
+			next = 5;
+		}
+
+		if (next === current) {
+			return;
+		}
+
+		this.set_uci_option_permanent("MultiPV", next);
+	},
+
+	update_toolbar_state: function() {
+		let go_button = document.getElementById("toolbar_go");
+		let halt_button = document.getElementById("toolbar_halt");
+		let return_button = document.getElementById("toolbar_return");
+		let clear_focus_button = document.getElementById("toolbar_clear_focus");
+		let multipv_down_button = document.getElementById("toolbar_multipv_down");
+		let multipv_up_button = document.getElementById("toolbar_multipv_up");
+
+		if (go_button) {
+			go_button.disabled = (config.behaviour !== "halt");
+		}
+		if (halt_button) {
+			halt_button.disabled = (config.behaviour === "halt");
+		}
+		if (return_button) {
+			return_button.disabled = !this.leela_lock_node;
+		}
+		if (clear_focus_button) {
+			clear_focus_button.disabled = (this.tree.node.searchmoves.length === 0);
+		}
+		if (multipv_down_button) {
+			multipv_down_button.disabled = (this.toolbar_multipv_value() <= 1);
+		}
+		if (multipv_up_button) {
+			multipv_up_button.disabled = (this.toolbar_multipv_value() >= 5);
+		}
 	},
 
 	set_pgn_font_size: function(n) {

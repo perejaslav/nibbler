@@ -1,0 +1,42 @@
+# Nibbler — Agent Instructions
+
+## Project Overview
+Electron GUI for Leela Chess Zero (Lc0) / UCI chess engines. Version 2.5.9.
+
+## Run
+```
+cd files/src && electron .
+```
+No build step needed for development. The app IS the source.
+
+## Build (Windows/Linux)
+1. Download Electron release (v9.4.4) into `files/scripts/electron_zipped/electron-v9.4.4-{platform}-x64.zip`
+2. Run `python files/scripts/builder.py`
+
+## Code Structure
+
+### Main process (`files/src/main.js`)
+- Electron main process, handles window, menus, IPC
+- Loads config early via `modules/config_io`
+- No hot reload — restart after changes
+
+### Renderer (pure vanilla JS, no framework)
+- `files/src/renderer/` — numbered files indicate load order: `10_globals.js` → `99_start.js`
+- `files/src/ibbler.html` — entry point, loads renderer scripts
+- `files/src/nibbler.html` — main layout, includes `#analysistoolbar` container with 13 buttons
+- `files/src/nibbler.css` — toolbar layout uses flexbox with wrap inside grid area `t`
+- `files/src/modules/` — utilities (translations, config I/O, etc.)
+- Toolbar click dispatch in `95_hub.js:toolbar_click()` via `EventPathString("toolbar_")` prefix matching
+- Toolbar state sync in `95_hub.js:update_toolbar_state()` called from `draw()` and `set_behaviour_direct()`
+
+### Config
+- JSON in `userData` path (set by Electron)
+- Loaded via `modules/config_io.js`
+
+## Quirks
+- `contextIsolation: false`, `nodeIntegration: true` — renderer has full Node access
+- Old Electron (v9.4.4) — some APIs deprecated but functional
+- No automated tests — verify manually
+
+## Known Issues
+- Electron >9.4.4 causes minor glitches: https://github.com/rooklift/nibbler/issues/140

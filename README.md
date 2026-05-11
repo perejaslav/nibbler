@@ -21,9 +21,11 @@ For prebuilt binary releases, see the [Releases](https://github.com/rooklift/nib
 * Supports PGN variations of arbitrary depth.
 * FEN loading.
 * Chess 960.
+* Analysis toolbar with one-click access to engine controls, navigation, board flip, and MultiPV.
 
 ## Recent changes
 
+* Added analysis toolbar with quick-access buttons for Go, Halt, Lock, Return, Auto-evaluate, navigation (Root/Back/Forward/End), Flip board, MultiPV adjustment, and Clear Focus.
 * `Ctrl+V` now loads FEN / PGN from the clipboard.
 * Pasting a PGN from the clipboard now merges it into the current game tree as a variation instead of replacing the whole game.
 * If the pasted PGN start position is not present in the current tree, the import is cancelled without overwriting the current game.

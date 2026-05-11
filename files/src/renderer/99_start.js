@@ -174,6 +174,10 @@ statusbox.addEventListener("mousedown", (event) => {
 	hub.statusbox_click(event);
 });
 
+analysistoolbar.addEventListener("mousedown", (event) => {
+	hub.toolbar_click(event);
+});
+
 promotiontable.addEventListener("mousedown", (event) => {
 	hub.promotiontable_click(event);
 });
