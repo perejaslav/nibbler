@@ -29,10 +29,10 @@ description: "Task list for UCI Engine Settings Dialog implementation"
 
 **Purpose**: Prepare the existing vanilla renderer structure for a focused UCI settings dialog without adding a build step.
 
-- [ ] T001 Add `files/src/renderer/94_uci_options_dialog.js` as an empty strict-mode renderer module placeholder
-- [ ] T002 Load `files/src/renderer/94_uci_options_dialog.js` in `files/src/nibbler.html` between `renderer/90_engine.js` and `renderer/95_hub.js`
-- [ ] T003 [P] Add CSS section placeholders for UCI settings dialog classes in `files/src/nibbler.css`
-- [ ] T004 [P] Review existing Engine menu location in `files/src/main.js` and identify insertion point for `Engine settings...` action
+- [x] T001 Add `files/src/renderer/94_uci_options_dialog.js` as an empty strict-mode renderer module placeholder
+- [x] T002 Load `files/src/renderer/94_uci_options_dialog.js` in `files/src/nibbler.html` between `renderer/90_engine.js` and `renderer/95_hub.js`
+- [x] T003 [P] Add CSS section placeholders for UCI settings dialog classes in `files/src/nibbler.css`
+- [x] T004 [P] Review existing Engine menu location in `files/src/main.js` and identify insertion point for `Engine settings...` action
 
 ---
 
@@ -42,12 +42,12 @@ description: "Task list for UCI Engine Settings Dialog implementation"
 
 **CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T005 Implement `uci_options_dialog.parseOptionLine(rawMetadata, fallbackKey)` in `files/src/renderer/94_uci_options_dialog.js` for UCI `check`, `spin`, `combo`, `string`, `button`, and unknown option metadata
-- [ ] T006 Implement `uci_options_dialog.optionLabel(option)` and HTML escaping usage in `files/src/renderer/94_uci_options_dialog.js` so option names and raw metadata render safely
-- [ ] T007 Implement `uci_options_dialog.buildOptionList(engine, savedOptions)` in `files/src/renderer/94_uci_options_dialog.js` using `engine.known_options`, `engine.sent_options`, and `engineconfig[engine.filepath].options`
-- [ ] T008 Implement `uci_options_dialog.validateDraftValue(option, rawValue)` in `files/src/renderer/94_uci_options_dialog.js` for `check`, `spin`, `combo`, and `string` values
-- [ ] T009 Expose `get_uci_option_rows()` helper on the engine object in `files/src/renderer/90_engine.js` without changing existing `known_options` population behavior
-- [ ] T010 Add `press_uci_button_option(name)` helper to `hub` in `files/src/renderer/95_hub.js` that calls existing `this.engine.pressbutton(name)` without writing to `engineconfig`
+- [x] T005 Implement `uci_options_dialog.parseOptionLine(rawMetadata, fallbackKey)` in `files/src/renderer/94_uci_options_dialog.js` for UCI `check`, `spin`, `combo`, `string`, `button`, and unknown option metadata
+- [x] T006 Implement `uci_options_dialog.optionLabel(option)` and HTML escaping usage in `files/src/renderer/94_uci_options_dialog.js` so option names and raw metadata render safely
+- [x] T007 Implement `uci_options_dialog.buildOptionList(engine, savedOptions)` in `files/src/renderer/94_uci_options_dialog.js` using `engine.known_options`, `engine.sent_options`, and `engineconfig[engine.filepath].options`
+- [x] T008 Implement `uci_options_dialog.validateDraftValue(option, rawValue)` in `files/src/renderer/94_uci_options_dialog.js` for `check`, `spin`, `combo`, and `string` values
+- [x] T009 Expose `get_uci_option_rows()` helper on the engine object in `files/src/renderer/90_engine.js` without changing existing `known_options` population behavior
+- [x] T010 Add `press_uci_button_option(name)` helper to `hub` in `files/src/renderer/95_hub.js` that calls existing `this.engine.pressbutton(name)` without writing to `engineconfig`
 
 **Checkpoint**: Parser helpers can derive typed option rows from current engine metadata, and no UI entry point exists yet.
 
@@ -61,22 +61,22 @@ description: "Task list for UCI Engine Settings Dialog implementation"
 
 ### Implementation for User Story 1
 
-- [ ] T011 [US1] Add `Engine settings...` menu item in `files/src/main.js` that sends `win.webContents.send("call", "show_uci_engine_settings")`
-- [ ] T012 [US1] Implement `show_uci_engine_settings()` in `files/src/renderer/95_hub.js` to show a user-facing message when no current engine path is available
-- [ ] T013 [US1] Implement `show_uci_engine_settings()` in `files/src/renderer/95_hub.js` to show a user-facing message when `engine.known_options` is empty or options are not ready
-- [ ] T014 [US1] Implement `uci_options_dialog.renderDialog(engine, rows)` in `files/src/renderer/94_uci_options_dialog.js` with header identifying the current engine
-- [ ] T015 [US1] Render `check` options as checkbox controls in `files/src/renderer/94_uci_options_dialog.js`
-- [ ] T016 [US1] Render `spin` options as numeric controls with visible `min` and `max` bounds in `files/src/renderer/94_uci_options_dialog.js`
-- [ ] T017 [US1] Render `combo` options as select controls containing all parsed `var` choices in `files/src/renderer/94_uci_options_dialog.js`
-- [ ] T018 [US1] Render `string` options as text inputs in `files/src/renderer/94_uci_options_dialog.js`
-- [ ] T019 [US1] Add Save and Cancel controls with `uci_option_save` and `uci_option_cancel` IDs in `files/src/renderer/94_uci_options_dialog.js`
-- [ ] T020 [US1] Route `uci_option_cancel` clicks in `hub.fullbox_click(event)` in `files/src/renderer/95_hub.js` to `this.hide_fullbox()` without saving
-- [ ] T021 [US1] Implement `uci_options_dialog.collectDraftValues(fullbox_content)` in `files/src/renderer/94_uci_options_dialog.js` to collect editable controls by option key
-- [ ] T022 [US1] Route `uci_option_save` clicks in `hub.fullbox_click(event)` in `files/src/renderer/95_hub.js` to validate and apply collected draft values
-- [ ] T023 [US1] Apply valid changed persistent values through `this.set_uci_option(name, value, true)` in `files/src/renderer/95_hub.js`
-- [ ] T024 [US1] Keep the dialog open and show inline validation messages from `files/src/renderer/94_uci_options_dialog.js` when `spin` or `combo` values are invalid
-- [ ] T025 [US1] Add UCI settings dialog CSS for layout, labels, controls, validation text, and action buttons in `files/src/nibbler.css`
-- [ ] T026 [US1] Manually verify P1 flow from `specs/001-uci-engine-settings/quickstart.md` using `cd files/src && electron .`
+- [x] T011 [US1] Add `Engine settings...` menu item in `files/src/main.js` that sends `win.webContents.send("call", "show_uci_engine_settings")`
+- [x] T012 [US1] Implement `show_uci_engine_settings()` in `files/src/renderer/95_hub.js` to show a user-facing message when no current engine path is available
+- [x] T013 [US1] Implement `show_uci_engine_settings()` in `files/src/renderer/95_hub.js` to show a user-facing message when `engine.known_options` is empty or options are not ready
+- [x] T014 [US1] Implement `uci_options_dialog.renderDialog(engine, rows)` in `files/src/renderer/94_uci_options_dialog.js` with header identifying the current engine
+- [x] T015 [US1] Render `check` options as checkbox controls in `files/src/renderer/94_uci_options_dialog.js`
+- [x] T016 [US1] Render `spin` options as numeric controls with visible `min` and `max` bounds in `files/src/renderer/94_uci_options_dialog.js`
+- [x] T017 [US1] Render `combo` options as select controls containing all parsed `var` choices in `files/src/renderer/94_uci_options_dialog.js`
+- [x] T018 [US1] Render `string` options as text inputs in `files/src/renderer/94_uci_options_dialog.js`
+- [x] T019 [US1] Add Save and Cancel controls with `uci_option_save` and `uci_option_cancel` IDs in `files/src/renderer/94_uci_options_dialog.js`
+- [x] T020 [US1] Route `uci_option_cancel` clicks in `hub.fullbox_click(event)` in `files/src/renderer/95_hub.js` to `this.hide_fullbox()` without saving
+- [x] T021 [US1] Implement `uci_options_dialog.collectDraftValues(fullbox_content)` in `files/src/renderer/94_uci_options_dialog.js` to collect editable controls by option key
+- [x] T022 [US1] Route `uci_option_save` clicks in `hub.fullbox_click(event)` in `files/src/renderer/95_hub.js` to validate and apply collected draft values
+- [x] T023 [US1] Apply valid changed persistent values through `this.set_uci_option(name, value, true)` in `files/src/renderer/95_hub.js`
+- [x] T024 [US1] Keep the dialog open and show inline validation messages from `files/src/renderer/94_uci_options_dialog.js` when `spin` or `combo` values are invalid
+- [x] T025 [US1] Add UCI settings dialog CSS for layout, labels, controls, validation text, and action buttons in `files/src/nibbler.css`
+- [x] T026 [US1] Manually verify P1 flow from `specs/001-uci-engine-settings/quickstart.md` using `cd files/src && electron .`
 
 **Checkpoint**: User Story 1 is functional and independently testable as the MVP.
 
@@ -218,3 +218,5 @@ After T034 completes:
 - Do not replace `engineconfig[this.engine.filepath].options`; update only explicit saved option keys.
 - Do not change existing analysis behavior except the existing `set_uci_option` path halting search when applying an option.
 - Do not persist UCI `button` options.
+
+- [x] T045 Verify and record manual timing for opening the engine settings dialog, changing one standard option, saving it under 30 seconds, and rendering a typical known option list under 1 second after options are available in specs/001-uci-engine-settings/quickstart.md

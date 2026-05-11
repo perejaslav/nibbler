@@ -1274,6 +1274,64 @@ let hub_props = {
 		this.engine.send_ack_setoption(name);
 	},
 
+	show_uci_engine_settings: function(errors) {
+		if (!this.engine || !this.engine.filepath) {
+			fullbox_content.innerHTML = `<span class="yellow">No current engine is selected.</span>`;
+			this.show_fullbox();
+			return;
+		}
+		if (!this.engine.ever_received_uciok || Object.keys(this.engine.known_options).length === 0) {
+			fullbox_content.innerHTML = `<span class="yellow">UCI options are not available for the current engine yet.</span>`;
+			this.show_fullbox();
+			return;
+		}
+
+		this.uci_option_rows = this.engine.get_uci_option_rows();
+		fullbox_content.innerHTML = uci_options_dialog.renderDialog(this.engine, this.uci_option_rows, errors);
+		this.show_fullbox();
+	},
+
+	press_uci_button_option: function(name) {
+		if (!this.engine || !this.engine.filepath) {
+			this.set_special_message("No current engine is selected", "blue");
+			return;
+		}
+		let sent = this.engine.pressbutton(name);
+		this.set_special_message(sent, "blue");
+	},
+
+	apply_uci_engine_settings: function() {
+		let rows = Array.isArray(this.uci_option_rows) ? this.uci_option_rows : [];
+		let values = uci_options_dialog.collectDraftValues(fullbox_content);
+		let byKey = Object.create(null);
+		let errors = Object.create(null);
+		let valid = Object.create(null);
+
+		for (let row of rows) {
+			byKey[row.key] = row;
+			if (!row.editable || !row.persistent || values[row.key] === undefined) continue;
+			let [value, err] = uci_options_dialog.validateDraftValue(row, values[row.key]);
+			if (err) {
+				errors[row.key] = err;
+			} else {
+				valid[row.key] = value;
+			}
+		}
+
+		if (Object.keys(errors).length > 0) {
+			this.show_uci_engine_settings(errors);
+			return;
+		}
+
+		for (let key of Object.keys(valid)) {
+			let row = byKey[key];
+			if (row && valid[key].toString() !== row.currentValue) {
+				this.set_uci_option(row.name, valid[key], true);
+			}
+		}
+		this.hide_fullbox();
+	},
+
 	// ---------------------------------------------------------------------------------------------------------------------
 	// Misc engine methods...
 
@@ -2202,6 +2260,18 @@ let hub_props = {
 			return;
 		}
 
+		if (EventPathString(event, "uci_option_save") !== null) {
+			if (event.button !== 2) {
+				this.apply_uci_engine_settings();
+			}
+			return;
+		}
+
+		if (EventPathString(event, "uci_option_cancel") !== null) {
+			this.hide_fullbox();
+			return;
+		}
+
 		// PGN chooser...
 
 		n = EventPathN(event, "pgn_chooser_");
@@ -2993,6 +3063,7 @@ let hub_props = {
 	hide_fullbox: function() {
 		this.fullbox_config_item = null;
 		this.fullbox_web_link = null;
+		this.uci_option_rows = null;
 		fullbox.style.display = "none";
 	},
 

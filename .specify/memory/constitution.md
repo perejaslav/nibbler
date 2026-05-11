@@ -83,7 +83,7 @@ are stored outside the repository in Electron's user data path.
 - The supported development Electron baseline is the existing application runtime; newer
   Electron behavior MUST NOT be assumed without manual verification.
 - The main process entry point is `files/src/main.js`; renderer scripts are loaded from
-  `files/src/ibbler.html` and related HTML/CSS files.
+  `files/src/nibbler.html` and related HTML/CSS files.
 - The app runs with `contextIsolation: false` and `nodeIntegration: true`; security or
   dependency changes MUST account for that runtime model.
 - Build changes for packaged releases MUST remain compatible with

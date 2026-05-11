@@ -2267,6 +2267,12 @@ function menu_build() {
 					}
 				},
 				{
+					label: translate.t("Engine settings..."),
+					click: () => {
+						win.webContents.send("call", "show_uci_engine_settings");
+					}
+				},
+				{
 					label: translate.t("Weights"),
 					submenu: [
 						{

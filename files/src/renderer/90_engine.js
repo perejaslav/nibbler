@@ -90,6 +90,7 @@ function NewEngine(hub) {
 	eng.suppress_cycle_info = null;		// Stupid hack to allow "forget all analysis" to work; info lines from this cycle are ignored.
 
 	eng.known_options = Object.create(null);		// Keys are always lowercase.
+	eng.known_option_names = Object.create(null);	// Original names, keyed lowercase.
 	eng.sent_options = Object.create(null);			// Keys are always lowercase. Values are always strings.
 	eng.setoption_queue = [];
 
@@ -118,11 +119,13 @@ function NewEngine(hub) {
 			let lower = msg.toLowerCase();
 			let i1 = lower.indexOf(" name ");
 			let i2 = lower.indexOf(" value ");
+			let i2_end = lower.endsWith(" value") ? lower.length - 6 : -1;
 
-			if (i1 !== -1 && i2 !== -1 && i2 > i1) {
+			if (i1 !== -1 && ((i2 !== -1 && i2 > i1) || (i2_end !== -1 && i2_end > i1))) {
 
-				let key = lower.slice(i1 + 6, i2).trim();			// Keys are always lowercase.
-				let val = msg.slice(i2 + 7).trim();
+				let split = i2 !== -1 ? i2 : i2_end;
+				let key = lower.slice(i1 + 6, split).trim();			// Keys are always lowercase.
+				let val = i2 !== -1 ? msg.slice(i2 + 7).trim() : "";
 
 				if (key.length > 0) {
 					this.sent_options[key] = val;
@@ -372,6 +375,14 @@ function NewEngine(hub) {
 		return this.known_options[s.toLowerCase()] !== undefined;
 	};
 
+	eng.get_uci_option_rows = function() {
+		let saved = Object.create(null);
+		if (engineconfig[this.filepath] && typeof engineconfig[this.filepath].options === "object") {
+			saved = engineconfig[this.filepath].options;
+		}
+		return uci_options_dialog.buildOptionList(this, saved);
+	};
+
 	eng.send_ack_engine = function() {
 		ipcRenderer.send("ack_engine", this.filepath);
 	};
@@ -401,7 +412,9 @@ function NewEngine(hub) {
 		// Main process wants to keep track of what these things are set to (for menu checks).
 		// These will all ack the value "" to main.js since no value has been set yet...
 
+		this.known_options = Object.create(null);
 		this.sent_options = Object.create(null);		// Blank anything we "sent" up till now.
+		this.known_option_names = Object.create(null);
 
 		for (let key of GUI_WANTS_TO_KNOW) {
 			this.send_ack_setoption(key);
@@ -443,8 +456,10 @@ function NewEngine(hub) {
 					let a = line.indexOf(" name ");
 					let b = line.indexOf(" type ");
 					if (a !== -1 && b != -1) {
-						let optname = line.slice(a + 6, b).trim().toLowerCase();
+						let original_optname = line.slice(a + 6, b).trim();
+						let optname = original_optname.toLowerCase();
 						this.known_options[optname] = line.slice(b + 1);
+						this.known_option_names[optname] = original_optname;
 						if (optname === "uci_chess960") {					// As a special thing, always set UCI_Chess960 where possible.
 							this.setoption("UCI_Chess960", true);			// (Why is this not just done in globals.js? I forget...)
 						}
