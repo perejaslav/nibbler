@@ -1719,10 +1719,17 @@ let hub_props = {
 	},
 
 	merge_pgn_tree_into_node: function(target_node, imported_node) {
+		let main_line_end = target_node;
+
 		for (let imported_child of imported_node.children) {
 			let target_child = target_node.make_move(imported_child.move);
-			this.merge_pgn_tree_into_node(target_child, imported_child);
+			let child_end = this.merge_pgn_tree_into_node(target_child, imported_child);
+			if (imported_node.children[0] === imported_child) {
+				main_line_end = child_end;
+			}
 		}
+
+		return main_line_end;
 	},
 
 	load_pgn_object: function(o, merge_into_current = false) {				// Returns true or false - whether this actually succeeded.
@@ -1749,8 +1756,9 @@ let hub_props = {
 			return false;
 		}
 
-		this.merge_pgn_tree_into_node(anchor_node, imported_root);
+		let end_node = this.merge_pgn_tree_into_node(anchor_node, imported_root);
 		DestroyTree(imported_root);
+		this.tree.node = end_node;
 		this.tree.tree_version++;
 		this.tree.dom_from_scratch();
 		this.position_changed(false, true);
@@ -1881,10 +1889,7 @@ let hub_props = {
 		let loader = NewFastPGNLoader(buf, (err, pgndata) => {
 			if (!err) {
 				pgndata.source = "From clipboard";
-				this.handle_loaded_pgndata(pgndata, false);
-				if (pgndata.count() === 1) {
-					this.goto_end();
-				}
+				this.handle_loaded_pgndata(pgndata, true);
 			} else {
 				console.log(err);
 			}
