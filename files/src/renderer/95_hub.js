@@ -1881,7 +1881,10 @@ let hub_props = {
 		let loader = NewFastPGNLoader(buf, (err, pgndata) => {
 			if (!err) {
 				pgndata.source = "From clipboard";
-				this.handle_loaded_pgndata(pgndata, true);
+				this.handle_loaded_pgndata(pgndata, false);
+				if (pgndata.count() === 1) {
+					this.goto_end();
+				}
 			} else {
 				console.log(err);
 			}
