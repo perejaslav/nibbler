@@ -1,50 +1,118 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+Version change: template -> 1.0.0
+Modified principles:
+- Template principle 1 -> I. Source Is the Product
+- Template principle 2 -> II. Preserve Engine Compatibility
+- Template principle 3 -> III. Manual Verification Is Mandatory
+- Template principle 4 -> IV. Minimal Vanilla Renderer Changes
+- Template principle 5 -> V. User Configuration Safety
+Added sections:
+- Project Constraints
+- Development Workflow
+Removed sections:
+- None
+Templates requiring updates:
+- ✅ .specify/templates/plan-template.md
+- ✅ .specify/templates/spec-template.md
+- ✅ .specify/templates/tasks-template.md
+- ✅ .specify/templates/commands/*.md (directory absent)
+- ✅ README.md (reviewed; no principle references required changes)
+- ✅ AGENTS.md (reviewed; already aligned with project constraints)
+Follow-up TODOs:
+- None
+-->
+# Nibbler Constitution
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Source Is the Product
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Nibbler's runnable application source lives under `files/src`. Changes MUST keep the
+development path runnable with `cd files/src && electron .` and MUST NOT introduce a
+required build, bundling, transpilation, or framework step for normal development.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Rationale: Nibbler is distributed as an Electron application whose development model is
+the app source itself; extra build layers increase maintenance risk for a small desktop
+tool.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Preserve Engine Compatibility
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Changes that affect engine startup, analysis flow, UCI command handling, Leela Chess Zero
+integration, or traditional UCI engine behavior MUST preserve existing user workflows
+unless the feature specification explicitly approves a breaking change. Engine-facing
+behavior MUST account for Lc0 first and MUST avoid assumptions that exclude Stockfish-like
+engines when the existing code supports them.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Rationale: The primary product value is reliable real-time chess engine analysis, and
+small protocol regressions can make the GUI unusable.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Manual Verification Is Mandatory
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Every behavior change MUST include a documented manual verification path because the
+project has no automated test suite. The minimum verification path MUST state how to run
+the app, which UI or engine workflow was exercised, and what observable result proves the
+change works. Automated tests MAY be added when practical, but they do not replace manual
+Electron verification for UI or engine behavior.
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Rationale: The app depends on Electron UI state and external engine processes, so passing
+static checks alone is insufficient evidence.
+
+### IV. Minimal Vanilla Renderer Changes
+
+Renderer changes MUST use the existing vanilla JavaScript, HTML, and CSS structure under
+`files/src/renderer`, `files/src/nibbler.html`, and `files/src/nibbler.css`. New
+frameworks, package managers, generated assets, or broad file reorganizations MUST NOT be
+introduced unless the specification includes a concrete migration plan and compatibility
+risk review. Script load order and numbered renderer file conventions MUST be preserved.
+
+Rationale: The renderer is intentionally simple and order-dependent; framework or
+structure churn creates regressions disproportionate to typical feature size.
+
+### V. User Configuration Safety
+
+Changes that read, write, migrate, or reinterpret user configuration MUST preserve
+existing user settings unless a documented migration is required. Config changes MUST
+handle missing or partial data and MUST avoid deleting unknown user-provided fields.
+
+Rationale: User engine paths, options, and preferences are difficult to reconstruct and
+are stored outside the repository in Electron's user data path.
+
+## Project Constraints
+
+- The supported development Electron baseline is the existing application runtime; newer
+  Electron behavior MUST NOT be assumed without manual verification.
+- The main process entry point is `files/src/main.js`; renderer scripts are loaded from
+  `files/src/ibbler.html` and related HTML/CSS files.
+- The app runs with `contextIsolation: false` and `nodeIntegration: true`; security or
+  dependency changes MUST account for that runtime model.
+- Build changes for packaged releases MUST remain compatible with
+  `python files/scripts/builder.py` and Electron release archives under
+  `files/scripts/electron_zipped/`.
+
+## Development Workflow
+
+- Feature specs MUST identify impacted user workflows, including chess engine workflows
+  when applicable.
+- Implementation plans MUST include a Constitution Check covering runtime path, engine
+  compatibility, manual verification, renderer architecture, and config safety.
+- Task lists MUST include explicit manual verification tasks for each changed behavior.
+- Reviews MUST reject changes that cannot be exercised from source or that omit the
+  verification evidence required by Principle III.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+This constitution supersedes conflicting project guidance for Spec Kit planning and task
+generation. Amendments require a documented rationale, an explicit semantic version bump,
+and synchronization of affected templates or runtime guidance in the same change.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+Versioning follows semantic versioning:
+- MAJOR for removing or redefining principles in a backward-incompatible way.
+- MINOR for adding principles, sections, or materially expanding governance.
+- PATCH for clarifications, wording fixes, and non-semantic refinements.
+
+Compliance review is required during planning and before completion. Any approved
+exception MUST be recorded in the feature plan's Complexity Tracking section with the
+reason, rejected simpler alternative, and verification impact.
+
+**Version**: 1.0.0 | **Ratified**: 2026-05-12 | **Last Amended**: 2026-05-12

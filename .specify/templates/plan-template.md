@@ -31,7 +31,17 @@
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-[Gates determined based on constitution file]
+- **Source is the product**: Plan keeps `cd files/src && electron .` as the
+  development run path and does not add a required build/bundling step.
+- **Engine compatibility**: Plan identifies any Lc0/UCI engine workflows touched
+  and states how existing behavior is preserved or why an approved breaking change
+  is required.
+- **Manual verification**: Plan includes concrete manual Electron verification for
+  every behavior change, including expected observable results.
+- **Vanilla renderer architecture**: Plan preserves existing renderer script load
+  order, HTML/CSS structure, and avoids new frameworks unless justified below.
+- **Configuration safety**: Plan identifies config reads/writes/migrations and how
+  existing user settings and unknown fields are preserved.
 
 ## Project Structure
 
