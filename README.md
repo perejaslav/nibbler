@@ -8,7 +8,7 @@ Current maintained fork: https://github.com/perejaslav/nibbler
 
 Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
 
-![Screenshot](https://user-images.githubusercontent.com/16438795/270297798-a432ea17-3601-4143-bddb-97420a0d6e6c.png)
+![Screenshot](new-screenshot.png)
 
 ## Highlights
 
