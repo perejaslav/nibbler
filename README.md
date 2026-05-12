@@ -1,83 +1,221 @@
 # Nibbler
 
-Nibbler is a real-time analysis GUI for [Leela Chess Zero](http://lczero.org/play/quickstart/) (Lc0), which runs Leela in the background and constantly displays opinions about the current position. You can also compel the engine to evaluate one or more specific moves. Nibbler is loosely inspired by [Lizzie](https://github.com/featurecat/lizzie) and [Sabaki](https://github.com/SabakiHQ/Sabaki).
+Nibbler is a real-time chess analysis GUI for Leela Chess Zero (Lc0) and other UCI-compatible chess engines such as Stockfish.
 
-These days, Nibbler more-or-less works with traditional engines like [Stockfish](https://stockfishchess.org/), too. (Ensure `MultiPV` is `1`, `Threads` (CPU) is set, and `Hash` is set (more is better), for maximum strength.)
+It runs an engine in the background, continuously evaluates the current position, shows candidate moves visually, and lets you force analysis of selected moves. The project is historically based on the original Nibbler by Rooklift and is loosely inspired by Lizzie and Sabaki.
 
-For prebuilt binary releases, see the [Releases](https://github.com/rooklift/nibbler/releases) section. For help, the [Discord](https://discordapp.com/invite/pKujYxD) may be your best bet, or open an issue here.
+Current maintained fork: https://github.com/perejaslav/nibbler
+
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
 
 ![Screenshot](https://user-images.githubusercontent.com/16438795/270297798-a432ea17-3601-4143-bddb-97420a0d6e6c.png)
 
-## Features
+## Highlights
 
-* Display Leela's top choices graphically.
-* Winrate graph.
-* Optionally shows Leela statistics like N, P, Q, S, U, V, and WDL for each move.
-* UCI `searchmoves` functionality.
-* Automatic full-game analysis.
-* Play against Leela from any position.
-* Leela self-play from any position.
-* PGN loading via menu, clipboard, or drag-and-drop.
-* Supports PGN variations of arbitrary depth.
-* FEN loading.
-* Chess 960.
-* Analysis toolbar with one-click access to engine controls, navigation, board flip, and MultiPV.
+- Real-time engine analysis for Lc0 and traditional UCI engines.
+- Graphical display of top candidate moves.
+- Winrate graph.
+- Optional Leela statistics such as N, P, Q, S, U, V, and WDL.
+- UCI `searchmoves` support.
+- Automatic full-game analysis.
+- Play against the engine from any position.
+- Engine self-play from any position.
+- PGN loading through menu, clipboard, or drag-and-drop.
+- PGN variation support with arbitrary depth.
+- FEN loading from clipboard or menu.
+- Chess960 support.
+- Analysis toolbar with quick access to engine controls, navigation, board flip, MultiPV, and focus clearing.
+- Visual UCI engine settings dialog for standard engine options.
 
-## Recent changes
+## What's new in 2.7.0
 
-* Added analysis toolbar with quick-access buttons for Go, Halt, Lock, Return, Auto-evaluate, navigation (Root/Back/Forward/End), Flip board, MultiPV adjustment, and Clear Focus.
-* `Ctrl+V` now loads FEN / PGN from the clipboard.
-* Fixed `Ctrl+V` clipboard loading so it works reliably from the renderer keyboard handler.
-* Pasting a PGN from the clipboard merges it into the current game tree as a variation.
-* After pasting a game, Nibbler automatically jumps to the last move of the pasted line.
+Version 2.7.0 adds an MVP visual settings dialog for UCI engine options.
 
-## Installation - Windows / Linux
+- Added `Engine > Engine settings...`.
+- Standard UCI option types can now be viewed and edited visually.
+- Supported editable option types include `check`, `spin`, `combo`, and `string`.
+- Current engine identity is shown in the dialog.
+- Unknown or non-standard option types are handled safely instead of replacing the manual configuration workflow.
+- Confirmed changes are saved through Nibbler's existing engine configuration path.
+- Existing manual configuration through `engines.json` remains available.
 
-Some Windows and Linux standalone releases are uploaded to the [Releases](https://github.com/rooklift/nibbler/releases) section from time to time.
+Windows build for this release is available here:
 
-*Alternatively*, it is possible to run Nibbler from source. This requires Electron, but has no other dependencies. If you have Electron installed (e.g. `npm install -g electron`) you can likely enter the `/src` directory, then do `electron .` to run it. Nibbler should be compatible with at least version 5 and above.
+https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
 
-You could also build a standalone app. See comments inside the Python script `builder.py` for info.
+## Installation
 
-## Linux install script
+### Windows
 
-Linux users can make use of the following *one-liner* to install the latest version of Nibbler:
+1. Open the latest release page:
+   https://github.com/perejaslav/nibbler/releases
+2. Download `nibbler-2.7.0-windows.zip` or the newest available Windows archive.
+3. Extract the archive to a folder of your choice.
+4. Run `nibbler.exe`.
+5. Configure your engine path from inside Nibbler if needed.
+
+The 2.7.0 Windows build uses Electron 9.4.4.
+
+### Run from source
+
+Nibbler can also be run directly from source. This is useful for development or quick local checks.
+
+Requirements:
+
+- Node.js / npm
+- Electron
+
+From the repository root:
+
+```bash
+cd files/src
+npx electron .
+```
+
+A global Electron install also works:
+
+```bash
+npm install -g electron
+electron .
+```
+
+Nibbler is a classic Electron application. It does not require a modern JavaScript build step for normal development.
+
+### Linux and macOS
+
+The upstream project historically provided install scripts for Linux and macOS. They may still be useful, but they may not install this fork's latest release.
+
+Legacy upstream Linux script:
 
 ```bash
 curl -L https://raw.githubusercontent.com/rooklift/nibbler/master/files/scripts/install.sh | bash
 ```
 
-## Installation - Mac
-
-Mac builds have been made by [twoplan](https://github.com/twoplan/Nibbler-for-macOS) and [Jac-Zac](https://github.com/Jac-Zac/Nibbler_MacOS) and [Zamana](https://github.com/Zamana/nibbler) - the last of which is probably the most up-to-date.
-
-## Mac install script
-
-Alternatively, MacOS users can run the following *one-liner* to assemble Nibbler locally. This (hopefully) removes any codesigning issues (Gatekeeper refusing to open unauthorized apps) by building Nibbler on-the-fly, though I can't test it myself:
+Legacy upstream macOS script:
 
 ```bash
 curl -L https://raw.githubusercontent.com/rooklift/nibbler/master/files/scripts/install_mac.sh | bash
 ```
 
-## Advanced engine options
+For this fork, prefer the Releases page unless you specifically want to build or run from source.
 
-Most people won't need them, but all of Leela's engine options can be set in two ways:
+## Engine setup
 
-* Leela automatically loads options from a file called `lc0.config` at startup - see [here](https://lczero.org/play/configuration/flags/#config-file).
-* Nibbler will send UCI options specified in Nibbler's own `engines.json` file (which you can find via the Dev menu).
+Nibbler works best when a UCI-compatible engine is configured correctly.
 
-## Hints and tips
+For Lc0, see the official Lc0 quickstart and configuration documentation:
 
-An option to enable the UCI `searchmoves` feature is available in the Analysis menu. Once enabled, one or more moves can be specified as moves to focus on; Leela will ignore other moves. This is useful when you think Leela isn't giving a certain move enough attention.
+- https://lczero.org/play/quickstart/
+- https://lczero.org/play/configuration/flags/
 
-Leela forgets much of the evaluation if the position changes. To mitigate this, an option in the Analysis menu allows you to hover over a PV (on the right) and see it play out on the board, without changing the position we're actually analysing. You might prefer to halt Leela while doing this, so that the PVs don't change while you're looking at them.
+For Stockfish and other traditional UCI engines, typical important options include:
 
-Leela running out of RAM can be a problem if searches go on too long. You might like to set a reasonable node limit (in the Engine menu), perhaps 10 million or so.
+- `Threads`
+- `Hash`
+- `MultiPV`
 
-## Thanks
+For maximum strength in some engines, `MultiPV` should often be kept at `1`, while `Threads` and `Hash` should be set appropriately for your hardware.
 
-Thanks to everyone in Discord and GitHub who's offered advice and suggestions; and thanks to all Lc0 devs and GPU-hours contributors!
+## Engine options
 
-The pieces are from [Lichess](https://lichess.org/).
+Engine options can be configured in several ways.
 
-Icon design by [ciriousjoker](https://github.com/ciriousjoker) based on [this](https://www.svgrepo.com/svg/155301/chess).
+### Visual UCI settings dialog
+
+Use:
+
+```text
+Engine > Engine settings...
+```
+
+The dialog shows known options for the current engine and provides visual controls for standard UCI option types:
+
+- `check` — checkbox
+- `spin` — numeric input
+- `combo` — dropdown list
+- `string` — text field
+
+Confirmed changes are saved and applied through the existing engine configuration flow where possible.
+
+### Manual configuration
+
+Advanced users can still use manual configuration:
+
+- Lc0 can load options from `lc0.config` at startup.
+- Nibbler can send UCI options stored in its own `engines.json` file, available from the Dev menu.
+
+Manual configuration remains the safest option for engine-specific, unusual, or unsupported settings.
+
+## Analysis tips
+
+The UCI `searchmoves` feature is available from the Analysis menu. Once enabled, one or more moves can be selected as focus moves. The engine will ignore other moves. This is useful when a move appears under-analysed.
+
+When browsing principal variations on the right side of the interface, Nibbler can show the PV on the board without changing the actual analysed position. Halting the engine while inspecting PVs can make this easier, because the displayed lines will not keep changing.
+
+Long searches can consume significant memory. If your engine runs out of RAM, consider setting a reasonable node limit from the Engine menu.
+
+## Development notes
+
+Nibbler's runnable source lives under:
+
+```text
+files/src
+```
+
+Important files include:
+
+```text
+files/src/main.js
+files/src/nibbler.html
+files/src/nibbler.css
+files/src/renderer/
+```
+
+The project intentionally keeps the renderer simple and does not require React, Vue, TypeScript migration, or a bundler for ordinary changes.
+
+To run syntax checks on changed JavaScript files:
+
+```bash
+node --check files/src/main.js
+node --check files/src/renderer/90_engine.js
+node --check files/src/renderer/95_hub.js
+node --check files/src/renderer/94_uci_options_dialog.js
+```
+
+To run the app locally:
+
+```bash
+cd files/src
+npx electron .
+```
+
+## Releases
+
+Current release:
+
+- v2.7.0 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
+
+All releases:
+
+- https://github.com/perejaslav/nibbler/releases
+
+## Upstream and credits
+
+This repository is a maintained fork of the original Nibbler project by Rooklift:
+
+- https://github.com/rooklift/nibbler
+
+Thanks to everyone in the original Discord and GitHub community who contributed advice, testing, and suggestions. Thanks also to all Lc0 developers and GPU-hours contributors.
+
+The chess pieces are from Lichess:
+
+- https://lichess.org/
+
+Icon design by ciriousjoker, based on this icon:
+
+- https://github.com/ciriousjoker
+- https://www.svgrepo.com/svg/155301/chess
+
+## License
+
+Nibbler is licensed under GPL-3.0. See `LICENSE.md` for details.
