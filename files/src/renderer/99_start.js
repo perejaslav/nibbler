@@ -170,6 +170,10 @@ movelist.addEventListener("mousedown", (event) => {
 	hub.movelist_click(event);
 });
 
+movelist.addEventListener("contextmenu", (event) => {
+	event.preventDefault();
+});
+
 statusbox.addEventListener("mousedown", (event) => {
 	hub.statusbox_click(event);
 });

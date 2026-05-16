@@ -42,6 +42,7 @@ const fs = require("fs");
 const images = require("./modules/images");
 const ipcRenderer = require("electron").ipcRenderer;
 const messages = require("./modules/messages");
+const {build_movelist_context_menu_state} = require("./modules/movelist_context_menu");
 const path = require("path");
 const querystring = require("querystring");
 const readline = require("readline");

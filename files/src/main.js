@@ -62,6 +62,67 @@ let loaded_weights = "";
 let loaded_evalfile = "";
 
 let have_warned_hw_accel_setting = false;
+let movelist_context_menu_open = false;
+
+function build_movelist_context_menu(msg) {
+	return electron.Menu.buildFromTemplate([
+		{
+			label: translate.t("Return to main line"),
+			enabled: !!msg.can_return_to_main_line,
+			click: () => {
+				win.webContents.send("call", "return_to_main_line");
+			}
+		},
+		{
+			label: translate.t("Promote line to main line"),
+			enabled: !!msg.can_promote_to_main_line,
+			click: () => {
+				win.webContents.send("call", "promote_to_main_line");
+			}
+		},
+		{
+			label: translate.t("Promote line by 1 level"),
+			enabled: !!msg.can_promote,
+			click: () => {
+				win.webContents.send("call", "promote");
+			}
+		},
+		{
+			type: "separator"
+		},
+		{
+			label: translate.t("Delete node"),
+			enabled: !!msg.can_delete_node,
+			click: () => {
+				win.webContents.send("call", "delete_node");
+			}
+		},
+		{
+			label: translate.t("Delete children"),
+			enabled: !!msg.can_delete_children,
+			click: () => {
+				win.webContents.send("call", "delete_children");
+			}
+		},
+		{
+			label: translate.t("Delete siblings"),
+			enabled: !!msg.can_delete_siblings,
+			click: () => {
+				win.webContents.send("call", "delete_siblings");
+			}
+		},
+		{
+			type: "separator"
+		},
+		{
+			label: translate.t("Delete ALL other lines"),
+			enabled: !!msg.can_delete_other_lines,
+			click: () => {
+				win.webContents.send("call", "delete_other_lines");
+			}
+		},
+	]);
+}
 
 // Avoid a theoretical race by checking whether the ready event has already occurred,
 // otherwise set an event listener for it...
@@ -187,6 +248,29 @@ function startup() {
 
 	electron.ipcMain.on("web_link", (event, msg) => {
 		electron.shell.openExternal(msg);
+	});
+
+	electron.ipcMain.on("show_movelist_context_menu", (event, msg) => {
+
+		if (movelist_context_menu_open) {
+			return;
+		}
+
+		movelist_context_menu_open = true;
+
+		try {
+			let context_menu = build_movelist_context_menu(msg || {});
+
+			context_menu.popup({
+				window: win,
+				callback: () => {
+					movelist_context_menu_open = false;
+				}
+			});
+		} catch (err) {
+			movelist_context_menu_open = false;
+			throw err;
+		}
 	});
 
 	electron.ipcMain.on("ack_engine", (event, msg) => {

@@ -1681,6 +1681,18 @@ let hub_props = {
 		this.tree.delete_siblings();
 	},
 
+	show_movelist_context_menu: function(event) {
+
+		event.preventDefault();
+
+		let clicked_node = this.tree.node_from_click(event);
+		if (clicked_node && this.tree.set_node(clicked_node)) {
+			this.position_changed(false, true);
+		}
+
+		ipcRenderer.send("show_movelist_context_menu", build_movelist_context_menu_state(this.tree.node));
+	},
+
 	// ---------------------------------------------------------------------------------------------------------------------
 
 	new_game: function() {
@@ -2149,6 +2161,11 @@ let hub_props = {
 	},
 
 	movelist_click: function(event) {
+		if (event.button === 2) {
+			this.show_movelist_context_menu(event);
+			return;
+		}
+
 		if (this.tree.handle_click(event)) {
 			this.position_changed(false, true);
 		}
