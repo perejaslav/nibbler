@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.1
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -27,21 +27,20 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.
 - Analysis toolbar with quick access to engine controls, navigation, board flip, MultiPV, and focus clearing.
 - Visual UCI engine settings dialog for standard engine options.
 
-## What's new in 2.7.0
+## What's new in 2.7.1
 
-Version 2.7.0 adds an MVP visual settings dialog for UCI engine options.
+Version 2.7.1 adds a right-click context menu for working with PGN variations from the movelist.
 
-- Added `Engine > Engine settings...`.
-- Standard UCI option types can now be viewed and edited visually.
-- Supported editable option types include `check`, `spin`, `combo`, and `string`.
-- Current engine identity is shown in the dialog.
-- Unknown or non-standard option types are handled safely instead of replacing the manual configuration workflow.
-- Confirmed changes are saved through Nibbler's existing engine configuration path.
-- Existing manual configuration through `engines.json` remains available.
+- Added a native right-click context menu on movelist notation entries.
+- The menu exposes variation actions already available from the top menu, including promote and delete operations.
+- Right-click first selects the clicked node so actions apply to the visually highlighted variation.
+- Right-click on empty movelist space opens the menu for the current node.
+- Unavailable actions stay visible but are disabled for the current node.
+- Added protection against repeated context menu popups.
 
 Windows build for this release is available here:
 
-https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
+https://github.com/perejaslav/nibbler/releases/tag/v2.7.1
 
 ## Installation
 
@@ -49,12 +48,12 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-2.7.0-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-2.7.1-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
 
-The 2.7.0 Windows build uses Electron 9.4.4.
+The 2.7.1 Windows build uses Electron 9.4.4.
 
 ### Run from source
 
@@ -193,7 +192,7 @@ npx electron .
 
 Current release:
 
-- v2.7.0 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.0
+- v2.7.1 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.1
 
 All releases:
 
