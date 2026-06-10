@@ -937,6 +937,10 @@ let hub_props = {
 		);
 	},
 
+	draw_enginebox: function() {
+		enginebox.innerHTML = SafeStringHTML(this.engine.name || "");
+	},
+
 	draw_infobox: function() {
 		this.info_handler.draw_infobox(
 			this.tree.node,
@@ -1031,7 +1035,9 @@ let hub_props = {
 
 	receive_misc: function(s) {
 
-		if (s.startsWith("id name")) {
+		if (s.startsWith("id name ")) {
+			this.engine.name = engine_display.name_from_id_line(s);
+			this.draw_enginebox();
 
 			// Note that we do need to set the leelaish flag on the engine here (rather than relying on the
 			// autodetection in info.js) so that correct options can be sent.
@@ -1472,6 +1478,7 @@ let hub_props = {
 
 		this.engine.shutdown();
 		this.engine = new_engine;					// Don't reuse engine objects, not even the dummy object. There are sync issues due to fake "go"s.
+		this.draw_enginebox();
 
 		if (!engineconfig[this.engine.filepath]) {
 			engineconfig[this.engine.filepath] = engineconfig_io.newentry();

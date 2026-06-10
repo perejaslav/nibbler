@@ -81,6 +81,7 @@ function NewEngine(hub) {
 	eng.err_scanner = null;
 
 	eng.filepath = "";					// Used to decide what entry in engineconfig to use. Start as "", which has defaults for the dummy engine.
+	eng.name = "";
 
 	eng.last_send = null;
 	eng.unresolved_stop_time = null;
