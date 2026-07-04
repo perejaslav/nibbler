@@ -32,6 +32,7 @@ function NewHub() {
 	hub.leela_lock_node = null;							// Non-null only when in "analysis_locked" mode.
 
 	hub.looker.add_to_queue(hub.tree.node.board);		// Maybe make initial call to API such as ChessDN.cn...
+	hub.undo_stack = NewUndoStack(hub);
 	Object.assign(hub, hub_props);
 	return hub;
 }
@@ -1532,10 +1533,32 @@ let hub_props = {
 		}
 	},
 
-	// ---------------------------------------------------------------------------------------------------------------------
-	// Tree manipulation methods...
+		// ---------------------------------------------------------------------------------------------------------------------
+		// Tree manipulation methods...
 
-	move: function(s) {							// It is safe to call this with illegal moves.
+		// Undo/Redo -- delegates to undo_stack
+
+		undo: function() {
+			if (this.undo_stack) {
+				this.undo_stack.undo();
+			}
+		},
+
+		redo: function() {
+			if (this.undo_stack) {
+				this.undo_stack.redo();
+			}
+		},
+
+		can_undo: function() {
+			return this.undo_stack ? this.undo_stack.can_undo() : false;
+		},
+
+		can_redo: function() {
+			return this.undo_stack ? this.undo_stack.can_redo() : false;
+		},
+
+		move: function(s) {							// It is safe to call this with illegal moves.
 
 		if (typeof s !== "string") {
 			console.log(`hub.move(${s}) - bad argument`);
@@ -1569,18 +1592,27 @@ let hub_props = {
 			}
 		}
 
-		// The promised legality check...
+			// The promised legality check...
 
-		let illegal_reason = board.illegal(s);
-		if (illegal_reason) {
-			console.log(`hub.move(${s}) - ${illegal_reason}`);
-			return false;
-		}
+			let illegal_reason = board.illegal(s);
+			if (illegal_reason) {
+				console.log(`hub.move(${s}) - ${illegal_reason}`);
+				return false;
+			}
 
-		this.tree.make_move(s);
-		this.position_changed();
-		return true;
-	},
+			// Move is legal -- wrap in undo record.
+			// Get nice description for undo description.
+
+			let nice_move = board.nice_string(s);
+			let move_desc = "Play " + nice_move;
+
+			let result = this.undo_stack.wrap(move_desc, () => {
+				this.tree.make_move(s);
+				this.position_changed();
+			});
+
+			return true;
+		},
 
 	random_move: function() {
 		let legals = this.tree.node.board.movegen();
@@ -1662,31 +1694,61 @@ let hub_props = {
 		}
 	},
 
-	delete_node: function() {
-		if (this.tree.delete_node()) {
-			this.position_changed(false, true);
-		}
-	},
+		delete_node: function() {
+			if (this.tree.node && this.tree.node.parent) {		// Can only delete non-root
+				let desc = "Delete " + (this.tree.node.move ? this.tree.node.nice_move() : "node");
+				this.undo_stack.wrap(desc, () => {
+					if (this.tree.delete_node()) {
+						this.position_changed(false, true);
+					}
+				});
+			}
+		},
 
-	promote_to_main_line: function() {
-		this.tree.promote_to_main_line();
-	},
+		promote_to_main_line: function() {
+			if (this.tree.node && !this.tree.node.is_main_line()) {
+				let desc = "Promote to main line";
+				this.undo_stack.wrap(desc, () => {
+					this.tree.promote_to_main_line();
+				});
+			}
+		},
 
-	promote: function() {
-		this.tree.promote();
-	},
+		promote: function() {
+			if (this.tree.node && this.tree.node.parent && this.tree.node.parent.children[0] !== this.tree.node) {
+				let desc = "Promote variation";
+				this.undo_stack.wrap(desc, () => {
+					this.tree.promote();
+				});
+			}
+		},
 
-	delete_other_lines: function() {
-		this.tree.delete_other_lines();
-	},
+		delete_other_lines: function() {
+			if (this.tree.root && this.tree.root.children.length > 1) {
+				let desc = "Delete other lines";
+				this.undo_stack.wrap(desc, () => {
+					this.tree.delete_other_lines();
+				});
+			}
+		},
 
-	delete_children: function() {
-		this.tree.delete_children();
-	},
+		delete_children: function() {
+			if (this.tree.node && this.tree.node.children.length > 0) {
+				let desc = "Delete children";
+				this.undo_stack.wrap(desc, () => {
+					this.tree.delete_children();
+				});
+			}
+		},
 
-	delete_siblings: function() {
-		this.tree.delete_siblings();
-	},
+		delete_siblings: function() {
+			if (this.tree.node && this.tree.node.parent && this.tree.node.parent.children.length > 1) {
+				let desc = "Delete siblings";
+				this.undo_stack.wrap(desc, () => {
+					this.tree.delete_siblings();
+				});
+			}
+		},
 
 	show_movelist_context_menu: function(event) {
 

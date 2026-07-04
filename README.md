@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.3
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -26,6 +26,21 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.
 - Chess960 support.
 - Analysis toolbar with quick access to engine controls, navigation, board flip, MultiPV, and focus clearing.
 - Visual UCI engine settings dialog for standard engine options.
+- Undo/Redo stack for tree operations (Edit menu, Ctrl+Z / Ctrl+Y).
+
+## What's new in 2.7.3
+
+Version 2.7.3 adds an Undo/Redo stack for tree operations.
+
+- New **Edit** menu with **Undo (Ctrl+Z)** and **Redo (Ctrl+Y)**.
+- Tree-modifying operations can now be undone:
+  - Making moves
+  - Deleting nodes, children, siblings, or other lines
+  - Promoting lines to main line or by one level
+- Stack depth of 50 operations; new actions clear the redo history.
+- A deep tree snapshot is taken before each operation so the entire tree
+  can be restored exactly as it was, including variations and analysis
+  structure.
 
 ## What's new in 2.7.2
 
@@ -46,12 +61,12 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-2.7.2-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-2.7.3-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
 
-The 2.7.2 Windows build uses Electron 9.4.4.
+The 2.7.3 Windows build uses Electron 9.4.4.
 
 ### Run from source
 
@@ -190,7 +205,7 @@ npx electron .
 
 Current release:
 
-- v2.7.2 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
+- v2.7.3 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.3
 
 All releases:
 

@@ -703,9 +703,46 @@ function menu_build() {
 					role: "quit"							// it won't, because we prevent the initial close...)
 				},
 			]
-		},
-		{
-			label: translate.t("Tree"),
+			},
+			{
+				label: translate.t("Edit"),
+				submenu: [
+					{
+						label: translate.t("Undo"),
+						accelerator: "CommandOrControl+Z",
+						click: () => {
+							win.webContents.send("call", "undo");
+						}
+					},
+					{
+						label: translate.t("Redo"),
+						accelerator: "CommandOrControl+Y",
+						click: () => {
+							win.webContents.send("call", "redo");
+						}
+					},
+					{
+						type: "separator"
+					},
+					{
+						label: translate.t("Cut"),
+						accelerator: "CommandOrControl+X",
+						role: "cut",
+					},
+					{
+						label: translate.t("Copy"),
+						accelerator: "CommandOrControl+C",
+						role: "copy",
+					},
+					{
+						label: translate.t("Paste"),
+						accelerator: "CommandOrControl+V",
+						role: "paste",
+					},
+				]
+			},
+			{
+				label: translate.t("Tree"),
 			submenu: [
 				{
 					label: translate.t("Play engine choice"),
