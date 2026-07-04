@@ -66,6 +66,11 @@ function NewUndoStack(hub) {
 			// differently after undo, this could be weird, but for tree operations it's fine.
 			clone.table = orig.table;		// Reference, not clone
 			clone.searchmoves = Array.isArray(orig.searchmoves) ? orig.searchmoves.slice() : [];
+			clone.comment_before = typeof orig.comment_before === "string" ? orig.comment_before : "";
+			clone.comment_after = typeof orig.comment_after === "string" ? orig.comment_after : "";
+			clone.annotation = typeof orig.annotation === "string" ? orig.annotation : null;
+			clone.user_arrows = Array.isArray(orig.user_arrows) ? orig.user_arrows.map(item => Object.assign({}, item)) : [];
+			clone.user_highlights = Array.isArray(orig.user_highlights) ? orig.user_highlights.map(item => Object.assign({}, item)) : [];
 
 			// Tags -- only on root
 			if (orig.tags) {

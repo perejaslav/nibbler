@@ -121,6 +121,99 @@ function build_movelist_context_menu(msg) {
 				win.webContents.send("call", "delete_other_lines");
 			}
 		},
+		{
+			type: "separator"
+		},
+		{
+			label: translate.t("Annotation"),
+			enabled: !!msg.can_edit_node,
+			submenu: [
+				{
+					label: translate.t("!!"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: ["!!"]
+						});
+					}
+				},
+				{
+					label: translate.t("!"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: ["!"]
+						});
+					}
+				},
+				{
+					label: translate.t("!?"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: ["!?"]
+						});
+					}
+				},
+				{
+					label: translate.t("?!"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: ["?!"]
+						});
+					}
+				},
+				{
+					label: translate.t("?"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: ["?"]
+						});
+					}
+				},
+				{
+					label: translate.t("??"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: ["??"]
+						});
+					}
+				},
+				{
+					type: "separator"
+				},
+				{
+					label: translate.t("Clear"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "set_node_annotation",
+							args: [null]
+						});
+					}
+				},
+			]
+		},
+		{
+			label: translate.t("Comment"),
+			enabled: !!msg.can_edit_node,
+			submenu: [
+				{
+					label: translate.t("Edit..."),
+					click: () => {
+						win.webContents.send("call", "edit_node_comment");
+					}
+				},
+				{
+					label: translate.t("Clear"),
+					click: () => {
+						win.webContents.send("call", "clear_node_comments");
+					}
+				},
+			]
+		},
 	]);
 }
 

@@ -30,6 +30,7 @@ function build_movelist_context_menu_state(node) {
 			can_delete_children: false,
 			can_delete_siblings: false,
 			can_delete_other_lines: false,
+			can_edit_node: false,
 		};
 	}
 
@@ -46,6 +47,7 @@ function build_movelist_context_menu_state(node) {
 		can_delete_children: has_children,
 		can_delete_siblings: has_siblings,
 		can_delete_other_lines: can_delete_other_lines(node),
+		can_edit_node: has_parent,
 	};
 }
 

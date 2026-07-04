@@ -89,12 +89,39 @@ function LoadPGNRecord(o) {				// This can throw!
 	let node = root;
 
 	let inside_brace = false;			// {} are comments. Braces do not nest.
+	let brace_comment = new_byte_pusher();
 
 	let callstack = [];					// When a parenthesis "(" opens, we record the node to "return" to later, on the "callstack".
 
 	let token = new_byte_pusher();
+	let pending_comment_before = "";
+	let pending_graphics_before = {
+		user_arrows: [],
+		user_highlights: [],
+	};
+	let last_significant_was_move = false;
 
 	let finished = false;
+
+	function append_comment_text(target, field, text) {
+		if (!text) {
+			return;
+		}
+		if (target[field]) {
+			target[field] += " " + text;
+		} else {
+			target[field] = text;
+		}
+	}
+
+	function append_graphics(target, graphics) {
+		if (graphics.user_arrows.length > 0) {
+			target.user_arrows = target.user_arrows.concat(graphics.user_arrows);
+		}
+		if (graphics.user_highlights.length > 0) {
+			target.user_highlights = target.user_highlights.concat(graphics.user_highlights);
+		}
+	}
 
 	for (let rawline of o.movebufs) {
 
@@ -116,12 +143,29 @@ function LoadPGNRecord(o) {				// This can throw!
 
 			if (c === 123) {									// The opening brace { for a comment
 				inside_brace = true;
+				brace_comment.reset();
 				continue;
 			}
 
 			if (inside_brace) {
 				if (c === 125) {								// The closing brace }
 					inside_brace = false;
+
+					let raw_comment = decoder.decode(brace_comment.bytes()).trim();
+					let parsed_comment = ParsePgnGraphicsComment(raw_comment);
+					let target_is_after_move = last_significant_was_move && node && node.move;
+
+					if (target_is_after_move) {
+						append_comment_text(node, "comment_after", parsed_comment.text);
+						append_graphics(node, parsed_comment);
+					} else {
+						if (parsed_comment.text) {
+							pending_comment_before = pending_comment_before ? pending_comment_before + " " + parsed_comment.text : parsed_comment.text;
+						}
+						append_graphics(pending_graphics_before, parsed_comment);
+					}
+				} else {
+					brace_comment.push(c);
 				}
 				continue;
 			}
@@ -129,12 +173,14 @@ function LoadPGNRecord(o) {				// This can throw!
 			if (c === 40) {										// The opening parenthesis (
 				callstack.push(node);
 				node = node.parent;								// Unplay the last move.
+				last_significant_was_move = false;
 				continue;
 			}
 
 			if (c === 41) {										// The closing parenthesis )
 				node = callstack[callstack.length - 1];
 				callstack = callstack.slice(0, -1);
+				last_significant_was_move = false;
 				continue;
 			}
 
@@ -179,6 +225,13 @@ function LoadPGNRecord(o) {				// This can throw!
 
 				// Probably an actual move...
 
+				let annotation = "";
+				[s, annotation] = SplitPgnAnnotationSuffix(s);
+
+				if (s === "") {
+					continue;
+				}
+
 				let [move, error] = node.board.parse_pgn(s);
 
 				if (error) {
@@ -198,6 +251,20 @@ function LoadPGNRecord(o) {				// This can throw!
 				}
 
 				node = node.make_move(move, true);
+				if (pending_comment_before !== "") {
+					node.comment_before = pending_comment_before;
+					pending_comment_before = "";
+				}
+				if (pending_graphics_before.user_arrows.length > 0) {
+					node.user_arrows = pending_graphics_before.user_arrows;
+					pending_graphics_before.user_arrows = [];
+				}
+				if (pending_graphics_before.user_highlights.length > 0) {
+					node.user_highlights = pending_graphics_before.user_highlights;
+					pending_graphics_before.user_highlights = [];
+				}
+				node.annotation = PgnAnnotationSuffix(annotation) || null;
+				last_significant_was_move = true;
 			}
 		}
 

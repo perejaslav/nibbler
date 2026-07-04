@@ -376,6 +376,22 @@ span.movelist_highlight_yellow {
 	color: #ffff00;
 }
 
+span.annotation_good {
+	color: #66dd88;
+}
+
+span.annotation_dubious {
+	color: #ffcc66;
+}
+
+span.annotation_bad {
+	color: #ff6666;
+}
+
+span.comment_preview {
+	color: #999999;
+}
+
 span.nobr {
 	white-space: nowrap;				/* Used for O-O and O-O-O moves */
 }

@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.3
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.4
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -27,6 +27,17 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.7.
 - Analysis toolbar with quick access to engine controls, navigation, board flip, MultiPV, and focus clearing.
 - Visual UCI engine settings dialog for standard engine options.
 - Undo/Redo stack for tree operations (Edit menu, Ctrl+Z / Ctrl+Y).
+
+## What's new in 2.7.4
+
+Version 2.7.4 adds PGN annotations, comments, and graphical markup support.
+
+- PGN comments are preserved when loading and saving.
+- Move annotations like `!`, `?`, `!?`, `?!`, `!!`, and `??` are shown in the movelist.
+- Comments are shown inline in the movelist as short `{...}` previews, so it is clear which move has a comment.
+- PGN graphical annotations `[%cal ...]` and `[%csl ...]` are round-tripped.
+- Movelist context menu actions let you edit annotations and comments.
+- The Windows build for this release is packaged as `nibbler-2.7.4-windows.zip`.
 
 ## What's new in 2.7.3
 
@@ -61,12 +72,12 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-2.7.3-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-2.7.4-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
 
-The 2.7.3 Windows build uses Electron 9.4.4.
+The 2.7.4 Windows build uses Electron 9.4.4.
 
 ### Run from source
 
@@ -205,7 +216,8 @@ npx electron .
 
 Current release:
 
-- v2.7.3 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.3
+- v2.7.4 — https://github.com/perejaslav/nibbler/releases/tag/v2.7.4
+- Windows package: `releases/nibbler-2.7.4-windows.zip`
 
 All releases:
 

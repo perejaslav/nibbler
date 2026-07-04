@@ -30,8 +30,113 @@ function NewNode(parent, move, board_for_root) {		// move must be legal; board i
 	node.__nice_move = null;
 	node.destroyed = false;
 	node.children = [];
+	node.comment_before = "";
+	node.comment_after = "";
+	node.annotation = null;
+	node.user_arrows = [];
+	node.user_highlights = [];
 
 	return node;
+}
+
+function PgnAnnotationSuffix(annotation) {
+	switch (annotation) {
+	case "!!":
+	case "??":
+	case "!?":
+	case "?!":
+	case "!":
+	case "?":
+		return annotation;
+	default:
+		return "";
+	}
+}
+
+function SplitPgnAnnotationSuffix(s) {
+	for (let annotation of ["!!", "??", "!?", "?!", "!", "?"]) {
+		if (s.endsWith(annotation)) {
+			return [s.slice(0, -annotation.length), annotation];
+		}
+	}
+	return [s, ""];
+}
+
+function ParsePgnGraphicsComment(s) {
+
+	let text = s;
+	let user_arrows = [];
+	let user_highlights = [];
+
+	let cal_pattern = /\[%cal\s+([^\]]+)\]/ig;
+	let csl_pattern = /\[%csl\s+([^\]]+)\]/ig;
+
+	text = text.replace(cal_pattern, (match, body) => {
+		for (let item of body.split(",")) {
+			item = item.trim();
+			if (item.length < 5) {
+				continue;
+			}
+			let color = item[0].toUpperCase();
+			let from = item.slice(1, 3);
+			let to = item.slice(3, 5);
+			user_arrows.push({from, to, color});
+		}
+		return "";
+	});
+
+	text = text.replace(csl_pattern, (match, body) => {
+		for (let item of body.split(",")) {
+			item = item.trim();
+			if (item.length < 3) {
+				continue;
+			}
+			let color = item[0].toUpperCase();
+			let square = item.slice(1, 3);
+			user_highlights.push({square, color});
+		}
+		return "";
+	});
+
+	text = text.replace(/\s+/g, " ").trim();
+
+	return {
+		text: text,
+		user_arrows: user_arrows,
+		user_highlights: user_highlights,
+	};
+}
+
+function SerializePgnGraphics(arrows, highlights) {
+	let parts = [];
+
+	if (Array.isArray(arrows) && arrows.length > 0) {
+		let items = [];
+		for (let item of arrows) {
+			if (!item || typeof item.from !== "string" || typeof item.to !== "string" || typeof item.color !== "string") {
+				continue;
+			}
+			items.push(`${item.color.toUpperCase()}${item.from}${item.to}`);
+		}
+		if (items.length > 0) {
+			parts.push(`[%cal ${items.join(",")}]`);
+		}
+	}
+
+	if (Array.isArray(highlights) && highlights.length > 0) {
+		let items = [];
+		for (let item of highlights) {
+			if (!item || typeof item.square !== "string" || typeof item.color !== "string") {
+				continue;
+			}
+			items.push(`${item.color.toUpperCase()}${item.square}`);
+		}
+		if (items.length > 0) {
+			parts.push(`[%csl ${items.join(",")}]`);
+		}
+	}
+
+	return parts;
 }
 
 function NewRoot(board) {					// Arg is a board (position) object, not a FEN
@@ -288,6 +393,10 @@ const node_prototype = {
 
 		s += this.nice_move();
 
+		if (this.annotation) {
+			s += PgnAnnotationSuffix(this.annotation);
+		}
+
 		if (stats_flag) {
 			let stats = this.make_stats();
 			if (stats !== "") {
@@ -296,6 +405,54 @@ const node_prototype = {
 		}
 
 		return s;
+	},
+
+	pgn_parts: function(stats_flag, force_number_flag) {
+
+		let parts = [];
+
+		if (!this.move || !this.parent) {
+			return parts;
+		}
+
+		let need_number_string = false;
+
+		if (force_number_flag) need_number_string = true;
+		if (!this.parent.parent) need_number_string = true;
+		if (this.parent.board.active === "w") need_number_string = true;
+		if (this.parent.children[0] !== this) need_number_string = true;
+
+		if (this.comment_before) {
+			parts.push(`{${this.comment_before}}`);
+		}
+
+		if (need_number_string) {
+			parts.push(this.parent.board.next_number_string());
+		}
+
+		let move = this.nice_move();
+		if (this.annotation) {
+			move += PgnAnnotationSuffix(this.annotation);
+		}
+		parts.push(move);
+
+		if (this.comment_after) {
+			parts.push(`{${this.comment_after}}`);
+		}
+
+		if (stats_flag) {
+			let stats = this.make_stats();
+			if (stats !== "") {
+				parts.push(`{${stats}}`);
+			}
+		}
+
+		let graphics_parts = SerializePgnGraphics(this.user_arrows, this.user_highlights);
+		for (let part of graphics_parts) {
+			parts.push(part);
+		}
+
+		return parts;
 	},
 
 	make_stats: function() {

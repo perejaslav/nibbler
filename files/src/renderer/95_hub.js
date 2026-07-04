@@ -19,6 +19,7 @@ function NewHub() {
 	hub.engine_choices = [];							// Made by show_fast_engine_chooser() when needed.
 	hub.fullbox_config_item = null;						// Name of config item currently being edited in fullbox.
 	hub.fullbox_web_link = null;						// Web link which can be clicked on in the config editor.
+	hub.fullbox_comment_node = null;					// Node currently being edited in the comment editor.
 	hub.pgn_choices_start = 0;							// Where we are in the PGN Chooser screen.
 	hub.friendly_draws = New2DArray(8, 8, null);		// What pieces are drawn in boardfriends. Used to skip redraws.
 	hub.enemy_draws = New2DArray(8, 8, null);			// What pieces are drawn in boardsquares. Used to skip redraws.
@@ -1750,6 +1751,91 @@ let hub_props = {
 			}
 		},
 
+		set_node_annotation: function(annotation) {
+			if (!this.tree.node || !this.tree.node.parent) {
+				return;
+			}
+
+			let normalized = PgnAnnotationSuffix(annotation);
+			let desc = normalized ? "Set annotation " + normalized : "Clear annotation";
+
+			this.undo_stack.wrap(desc, () => {
+				this.tree.node.annotation = normalized || null;
+				this.tree.tree_version++;
+				this.tree.dom_from_scratch();
+			});
+		},
+
+		edit_node_comment: function() {
+			if (!this.tree.node || !this.tree.node.parent) {
+				return;
+			}
+			this.show_comment_editor();
+		},
+
+		apply_comment_edit: function() {
+			if (!this.fullbox_comment_node || this.fullbox_comment_node.destroyed) {
+				return;
+			}
+
+			let textarea = document.getElementById("comment_item_input");
+			if (!textarea) {
+				return;
+			}
+
+			let node = this.fullbox_comment_node;
+			let value = textarea.value.trim();
+
+			this.undo_stack.wrap("Edit comment", () => {
+				node.comment_after = value;
+				this.tree.tree_version++;
+				this.tree.dom_from_scratch();
+			});
+
+			this.fullbox_comment_node = null;
+			this.hide_fullbox();
+		},
+
+		show_comment_editor: function() {
+			if (!this.tree.node || !this.tree.node.parent) {
+				return;
+			}
+
+			this.fullbox_comment_node = this.tree.node;
+
+			let current = this.tree.node.comment_after || "";
+			let lines = [];
+			lines.push(`<div class="infoline">Editing: <span class="green">comment for ${SafeStringHTML(this.tree.node.nice_move())}</span></div>`);
+			lines.push(`<textarea id="comment_item_input" placeholder="Enter the comment here" rows="6"></textarea>`);
+			lines.push(`<div class="infoline"><span id="comment_item_save" class="blue">Save</span> | <span id="comment_item_cancel" class="red">Cancel</span></div>`);
+			lines.push(`<div id="comment_item_error" class="infoline">&nbsp;</div>`);
+
+			fullbox_content.innerHTML = lines.join("");
+			this.show_fullbox();
+
+			let textarea = document.getElementById("comment_item_input");
+			if (textarea) {
+				textarea.value = current;
+				textarea.focus();
+				textarea.select();
+			}
+		},
+
+		clear_node_comments: function() {
+			if (!this.tree.node || !this.tree.node.parent) {
+				return;
+			}
+
+			this.undo_stack.wrap("Clear comment", () => {
+				this.tree.node.comment_before = "";
+				this.tree.node.comment_after = "";
+				this.tree.node.user_arrows = [];
+				this.tree.node.user_highlights = [];
+				this.tree.tree_version++;
+				this.tree.dom_from_scratch();
+			});
+		},
+
 	show_movelist_context_menu: function(event) {
 
 		event.preventDefault();
@@ -2354,6 +2440,19 @@ let hub_props = {
 		}
 
 		if (EventPathString(event, "uci_option_cancel") !== null) {
+			this.hide_fullbox();
+			return;
+		}
+
+		if (EventPathString(event, "comment_item_save") !== null) {
+			if (event.button !== 2) {
+				this.apply_comment_edit();
+			}
+			return;
+		}
+
+		if (EventPathString(event, "comment_item_cancel") !== null) {
+			this.fullbox_comment_node = null;
 			this.hide_fullbox();
 			return;
 		}
@@ -3150,6 +3249,7 @@ let hub_props = {
 		this.fullbox_config_item = null;
 		this.fullbox_web_link = null;
 		this.uci_option_rows = null;
+		this.fullbox_comment_node = null;
 		fullbox.style.display = "none";
 	},
 

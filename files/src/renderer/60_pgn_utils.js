@@ -183,10 +183,9 @@ function make_movetext(node) {
 		if (typeof item === "string") {
 			tokens.push(item);
 		} else {
-			let item_token = item.token(true);
-			let subtokens = item_token.split(" ").filter(z => z !== "");
-			for (let subtoken of subtokens) {
-				tokens.push(subtoken);
+			let parts = item.pgn_parts(true);
+			for (let part of parts) {
+				tokens.push(part);
 			}
 		}
 	}
