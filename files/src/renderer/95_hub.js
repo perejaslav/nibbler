@@ -1,40 +1,133 @@
 "use strict";
 
+const TAB_STATE_KEYS = [
+	"tree",
+	"flip",
+	"behaviour",
+	"active_square",
+	"leela_lock_node",
+	"pgndata",
+	"pgn_choices_start",
+	"pgndata_merge_into_current",
+	"book",
+	"book_explorer",
+	"lichess_explorer",
+	"looker_api",
+	"look_past_25",
+	"node_to_clean",
+	"hoverdraw_div",
+	"hoverdraw_depth",
+	"position_change_time",
+	"fullbox_comment_node",
+	"undo_stack",
+	"grapher",
+	"looker",
+	"info_handler",
+	"status_handler",
+	"loaders",
+	"friendly_draws",
+	"enemy_draws",
+	"dirty_squares",
+	"tick",
+	"explorer_objects_cache",
+	"explorer_cache_node_id",
+];
+
+function tab_title_for(tab) {
+	let tags = (tab.tree.root && tab.tree.root.tags) || {};
+	let white = String(tags.White || "").trim();
+	let black = String(tags.Black || "").trim();
+	let source = tab.pgndata && String(tab.pgndata.source || "").trim();
+
+	if (white && black) {
+		return white + " - " + black;
+	}
+	if (source) {
+		return source;
+	}
+	return "New game";
+}
+
+function install_tab_aliases(hub) {
+	for (let key of TAB_STATE_KEYS) {
+		Object.defineProperty(hub, key, {
+			enumerable: true,
+			configurable: false,
+			get: function() {
+				return hub.current_tab()[key];
+			},
+			set: function(value) {
+				hub.current_tab()[key] = value;
+			}
+		});
+	}
+}
+
+function reset_tab_draw_cache(tab) {
+	tab.friendly_draws = New2DArray(8, 8, null);
+	tab.enemy_draws = New2DArray(8, 8, null);
+	tab.dirty_squares = New2DArray(8, 8, null);
+}
+
 function NewHub() {
 
 	let hub = Object.create(null);
 
 	hub.engine = NewEngine(hub);						// Just a dummy object with no exe. Fixed by start.js later.
-	hub.tree = NewTreeHandler();
-	hub.grapher = NewGrapher();
-	hub.looker = NewLooker();
-	hub.info_handler = NewInfoHandler();
-	hub.status_handler = NewStatusHandler();
+
+	hub.tab_manager = NewTabManager(hub);
+	hub.tab_manager.new_tab();
+	hub._context_tab = null;
+	hub.current_tab = function() {
+		return hub._context_tab || hub.tab_manager.active();
+	};
+	hub.is_active_context = function() {
+		return hub.current_tab() === hub.tab_manager.active();
+	};
+	hub.with_tab = function(tab, fn) {
+		let previous = hub._context_tab;
+		hub._context_tab = tab;
+		try {
+			return fn();
+		} finally {
+			hub._context_tab = previous;
+		}
+	};
+	hub.find_tab_for_node = function(node) {
+		if (!node) {
+			return null;
+		}
+		let root = node;
+		while (root.parent) {
+			root = root.parent;
+		}
+		for (let tab of hub.tab_manager.tabs) {
+			if (tab.tree && tab.tree.root === root) {
+				return tab;
+			}
+		}
+		return null;
+	};
+	install_tab_aliases(hub);
+	hub.active_tab = function() {
+		return hub.tab_manager.active();
+	};
 
 	// Various state we have to keep track of...
 
-	hub.loaders = [];									// The loaders can have shutdown() called on them to stop ASAP.
-	hub.book = null;									// Either a Polyglot buffer, or an array of {key, move, weight}.
-	hub.pgndata = null;									// Object representing the loaded PGN file.
 	hub.engine_choices = [];							// Made by show_fast_engine_chooser() when needed.
 	hub.fullbox_config_item = null;						// Name of config item currently being edited in fullbox.
 	hub.fullbox_web_link = null;						// Web link which can be clicked on in the config editor.
-	hub.fullbox_comment_node = null;					// Node currently being edited in the comment editor.
-	hub.pgn_choices_start = 0;							// Where we are in the PGN Chooser screen.
-	hub.friendly_draws = New2DArray(8, 8, null);		// What pieces are drawn in boardfriends. Used to skip redraws.
-	hub.enemy_draws = New2DArray(8, 8, null);			// What pieces are drawn in boardsquares. Used to skip redraws.
-	hub.dirty_squares = New2DArray(8, 8, null);			// What squares have some coloured background.
-	hub.active_square = null;							// Clicked square, shown in blue.
-	hub.hoverdraw_div = -1;								// Which div is hovered; used by draw_infobox().
-	hub.hoverdraw_depth = 0;							// How deep in the hover PV we are.
-	hub.tick = 0;										// How many draw loops we've been through. Used to animate hoverdraw.
-	hub.position_change_time = performance.now();		// Time of the last position change. Used for cooldown on hoverdraw.
-	hub.node_to_clean = hub.tree.node;					// The next node to be cleaned up (done when exiting it).
-	hub.leela_lock_node = null;							// Non-null only when in "analysis_locked" mode.
+	hub.tab_switch_in_progress = false;
+	hub.pending_tab_id = null;
+	hub.pending_tab_close = null;
+	hub.pending_tab_reset = false;
+	hub.displayed_flip = false;
 
 	hub.looker.add_to_queue(hub.tree.node.board);		// Maybe make initial call to API such as ChessDN.cn...
-	hub.undo_stack = NewUndoStack(hub);
 	Object.assign(hub, hub_props);
+	hub.refresh_active_tab_title();
+	hub.draw_tabs();
 	return hub;
 }
 
@@ -42,6 +135,19 @@ let hub_props = {
 
 	// ---------------------------------------------------------------------------------------------------------------------
 	// Core methods wrt our main state...
+
+	engine_owner_tab: function() {
+		return this.find_tab_for_node(this.engine.search_running.node) || this.find_tab_for_node(this.engine.search_desired.node);
+	},
+
+	engine_busy_elsewhere: function() {
+		let tab = this.engine_owner_tab();
+		return !!tab && tab.id !== this.current_tab().id;
+	},
+
+	behaviour_starts_engine: function(s) {
+		return ["analysis_free", "analysis_locked", "auto_analysis", "back_analysis", "self_play", "play_white", "play_black"].includes(s);
+	},
 
 	behave: function(reason) {							// reason should be "position" or "behaviour"
 
@@ -58,11 +164,17 @@ let hub_props = {
 			throw "behave(): bad call";
 		}
 
-		switch (config.behaviour) {
+		let engine_tab = this.find_tab_for_node(this.engine.search_running.node) || this.find_tab_for_node(this.engine.search_desired.node);
+		let current_tab = this.current_tab();
+		let engine_owned_here = !engine_tab || engine_tab.id === current_tab.id;
+
+		switch (this.behaviour) {
 
 		case "halt":
 
-			this.__halt();
+			if (engine_owned_here) {
+				this.__halt();
+			}
 			break;
 
 		case "analysis_free":
@@ -92,6 +204,9 @@ let hub_props = {
 			// iff the search is completed.
 
 			if (reason === "position") {
+				if (!engine_owned_here) {
+					break;
+				}
 
 				if (this.tree.node === this.leela_lock_node) {
 					if (!this.engine.search_desired.node) {
@@ -112,9 +227,9 @@ let hub_props = {
 		case "play_white":
 		case "play_black":
 
-			if ((config.behaviour === "self_play") ||
-				(config.behaviour === "play_white" && this.tree.node.board.active === "w") ||
-				(config.behaviour === "play_black" && this.tree.node.board.active === "b")) {
+			if ((this.behaviour === "self_play") ||
+				(this.behaviour === "play_white" && this.tree.node.board.active === "w") ||
+				(this.behaviour === "play_black" && this.tree.node.board.active === "b")) {
 
 				if (this.maybe_setup_book_move()) {
 					this.__halt();
@@ -139,18 +254,28 @@ let hub_props = {
 
 		// Called right after this.tree.node is changed, meaning we are now drawing a different position.
 
-		this.escape();
-		drag_handler.cancel_drag();
+		let is_active = this.is_active_context();
+		let engine_tab = this.find_tab_for_node(this.engine.search_running.node) || this.find_tab_for_node(this.engine.search_desired.node);
+		let engine_owned_here = !engine_tab || engine_tab.id === this.current_tab().id;
+
+		if (is_active) {
+			this.escape();
+			drag_handler.cancel_drag();
+		}
 
 		this.hoverdraw_div = -1;
 		this.position_change_time = performance.now();
-		fenbox.value = this.tree.node.board.fen(true);
+		if (is_active) {
+			fenbox.value = this.tree.node.board.fen(true);
+		}
 
-		if (new_game_flag) {
+		if (new_game_flag && is_active) {
 			this.node_to_clean = null;
 			this.leela_lock_node = null;
-			this.set_behaviour("halt");					// Will cause "stop" to be sent.
-			if (!config.suppress_ucinewgame) {
+			if (engine_owned_here) {
+				this.set_behaviour("halt");					// Will cause "stop" to be sent.
+			}
+			if (engine_owned_here && !config.suppress_ucinewgame) {
 				this.engine.send_ucinewgame();			// Must happen after "stop" is sent.
 			}
 			this.send_title();
@@ -172,14 +297,16 @@ let hub_props = {
 		// Caller can tell us the change would cause user confusion for some modes...
 
 		if (avoid_confusion) {
-			if (["play_white", "play_black", "self_play", "auto_analysis", "back_analysis"].includes(config.behaviour)) {
+			if (["play_white", "play_black", "self_play", "auto_analysis", "back_analysis"].includes(this.behaviour)) {
 				this.set_behaviour("halt");
 			}
 		}
 
 		this.maybe_infer_info();						// Before node_exit_cleanup() so that previous ghost info is available when moving forwards.
 		this.behave("position");
-		this.draw();
+		if (is_active) {
+			this.draw();
+		}
 
 		this.node_exit_cleanup();						// This feels like the right time to do this.
 		this.node_to_clean = this.tree.node;
@@ -193,10 +320,17 @@ let hub_props = {
 			s = "halt";
 		}
 
+		if (this.engine_busy_elsewhere() && this.behaviour_starts_engine(s)) {
+			this.set_special_message("Engine is busy in another tab", "yellow", 3000);
+			this.update_toolbar_state();
+			this.draw_statusbox();
+			return;
+		}
+
 		// Don't do anything if behaviour is already correct. But
 		// "halt" always triggers a behave() call for safety reasons.
 
-		if (s === config.behaviour) {
+		if (s === this.behaviour) {
 			switch (s) {
 			case "halt":
 				break;					// i.e. do NOT immediately return
@@ -221,14 +355,300 @@ let hub_props = {
 
 	set_behaviour_direct: function(s) {
 		this.leela_lock_node = (s === "analysis_locked") ? this.tree.node : null;
-		config.behaviour = s;
+		this.behaviour = s;
 		this.update_toolbar_state();
 	},
 
+	refresh_active_tab_title: function() {
+		let tab = this.active_tab();
+		tab.title = tab_title_for(tab);
+		this.draw_tabs();
+		if (this.is_active_context()) {
+			this.send_title();
+		}
+	},
+
+	draw_tabs: function() {
+
+		if (!tabbar) {
+			return;
+		}
+
+		while (tabbar.firstChild) {
+			tabbar.removeChild(tabbar.firstChild);
+		}
+
+		for (let tab of this.tab_manager.tabs) {
+			let item = document.createElement("span");
+			item.className = "tab_item";
+			if (tab.id === this.tab_manager.active_tab_id) {
+				item.classList.add("tab_item_active");
+			}
+			item.id = `tab_${tab.id}`;
+			item.dataset.tabId = String(tab.id);
+
+			let title = document.createElement("span");
+			title.className = "tab_title";
+			title.textContent = tab.title || "New game";
+			title.title = title.textContent;
+
+			let close = document.createElement("button");
+			close.className = "tab_close";
+			close.id = `tab_close_${tab.id}`;
+			close.dataset.tabCloseId = String(tab.id);
+			close.type = "button";
+			close.setAttribute("aria-label", "Close tab");
+			close.textContent = "x";
+
+			item.appendChild(title);
+			item.appendChild(close);
+			tabbar.appendChild(item);
+		}
+
+		let add = document.createElement("button");
+		add.className = "tab_add";
+		add.id = "tab_add";
+		add.type = "button";
+		add.setAttribute("aria-label", "New tab");
+		add.textContent = "+";
+		tabbar.appendChild(add);
+	},
+
+	apply_display_flip: function(target_flip) {
+
+		target_flip = !!target_flip;
+
+		if (this.displayed_flip === target_flip) {
+			return;
+		}
+
+		for (let x = 0; x < 8; x++) {
+			for (let y = 0; y < 4; y++) {
+
+				let first = document.getElementById(`overlay_${S(x, y)}`);
+				let second = document.getElementById(`overlay_${S(7 - x, 7 - y)}`);
+				SwapElements(first, second);
+
+				first = document.getElementById(`underlay_${S(x, y)}`);
+				second = document.getElementById(`underlay_${S(7 - x, 7 - y)}`);
+				SwapElements(first, second);
+			}
+		}
+
+		this.displayed_flip = target_flip;
+	},
+
+	tabbar_click: function(event) {
+
+		let close = event.target.closest("[data-tab-close-id]");
+		if (close) {
+			event.preventDefault();
+			event.stopPropagation();
+			this.close_current_tab();
+			return;
+		}
+
+		let add = event.target.closest("#tab_add");
+		if (add) {
+			event.preventDefault();
+			event.stopPropagation();
+			this.new_tab();
+			return;
+		}
+
+		let item = event.target.closest("[data-tab-id]");
+		if (item) {
+			let id = Number(item.dataset.tabId);
+			if (!Number.isNaN(id)) {
+				this.switch_tab(id);
+			}
+		}
+	},
+
+	_wait_for_engine_idle_then: function(callback) {
+
+		if (this.engine.search_running.node || this.engine.search_desired.node) {
+			setTimeout(() => {
+				this._wait_for_engine_idle_then(callback);
+			}, 20);
+			return;
+		}
+
+		callback();
+	},
+
+	_finish_tab_switch: function() {
+
+		let target_id = this.pending_tab_id;
+		if (target_id === null) {
+			this.tab_switch_in_progress = false;
+			return;
+		}
+
+		let closing = this.pending_tab_close;
+		this.pending_tab_id = null;
+		this.pending_tab_close = null;
+
+		this.hide_fullbox();
+		this.hide_promotiontable();
+
+		this.tab_manager.switch_to(target_id);
+		reset_tab_draw_cache(this.active_tab());
+		this.info_handler.must_draw_infobox();
+		this.tree.dom_from_scratch();
+		this.apply_display_flip(this.flip);
+		this.refresh_active_tab_title();
+		fenbox.value = this.tree.node.board.fen(true);
+		this.draw();
+
+		if (closing) {
+			this.tab_manager.close_tab(closing.old_id);
+			this.draw_tabs();
+		}
+
+		this.looker.add_to_queue(this.tree.node.board);
+		this.tab_switch_in_progress = false;
+		this.draw_tabs();
+
+		if (this.pending_tab_id !== null && this.pending_tab_id !== this.tab_manager.active_tab_id) {
+			let next_id = this.pending_tab_id;
+			this.pending_tab_id = null;
+			this.switch_tab(next_id);
+		}
+	},
+
+	switch_tab: function(tab_id) {
+
+		if (tab_id === null || this.tab_manager.find(tab_id) === null) {
+			return;
+		}
+
+		if (this.tab_manager.active_tab_id === tab_id && !this.tab_switch_in_progress) {
+			return;
+		}
+
+		this.pending_tab_id = tab_id;
+
+		if (this.tab_switch_in_progress) {
+			return;
+		}
+
+		this.tab_switch_in_progress = true;
+
+		let closing = this.pending_tab_close;
+		let active_search_tab = this.find_tab_for_node(this.engine.search_running.node) || this.find_tab_for_node(this.engine.search_desired.node);
+		let should_wait = !!closing && active_search_tab && active_search_tab.id === closing.old_id;
+
+		if (should_wait) {
+			this.engine.set_search_desired(null);
+			this._wait_for_engine_idle_then(() => {
+				this._finish_tab_switch();
+			});
+			return;
+		}
+
+		this._finish_tab_switch();
+	},
+
+	new_tab: function() {
+		let tab = this.tab_manager.new_tab();
+		this.switch_tab(tab.id);
+		return tab;
+	},
+
+	close_current_tab: function() {
+
+		if (this.tab_manager.count() <= 1) {
+			this.reset_active_tab_to_new_game();
+			return;
+		}
+
+		let old_id = this.tab_manager.active_tab_id;
+		let ids = this.tab_manager.tabs.map(tab => tab.id);
+		let index = ids.indexOf(old_id);
+		let replacement_id = null;
+
+		if (index >= 0 && index < ids.length - 1) {
+			replacement_id = ids[index + 1];
+		} else if (index > 0) {
+			replacement_id = ids[index - 1];
+		}
+
+		if (replacement_id === null) {
+			return;
+		}
+
+		this.pending_tab_close = {
+			old_id: old_id,
+			replacement_id: replacement_id
+		};
+		this.switch_tab(replacement_id);
+	},
+
+	activate_next_tab: function() {
+		let id = this.tab_manager.next_tab();
+		if (id !== null) {
+			this.switch_tab(id);
+		}
+	},
+
+	activate_previous_tab: function() {
+		let id = this.tab_manager.previous_tab();
+		if (id !== null) {
+			this.switch_tab(id);
+		}
+	},
+
+	reset_active_tab_to_new_game: function() {
+		let active_tab = this.active_tab();
+		let search_tab = this.find_tab_for_node(this.engine.search_running.node) || this.find_tab_for_node(this.engine.search_desired.node);
+
+		if (search_tab && search_tab.id === active_tab.id) {
+			this.pending_tab_reset = true;
+			this.engine.set_search_desired(null);
+			this._wait_for_engine_idle_then(() => {
+				if (!this.pending_tab_reset) {
+					return;
+				}
+				this.pending_tab_reset = false;
+				this._reset_active_tab_to_new_game_now();
+			});
+			return;
+		}
+
+		this._reset_active_tab_to_new_game_now();
+	},
+
+	_reset_active_tab_to_new_game_now: function() {
+		let tab = this.active_tab();
+		tab.tree = NewTreeHandler();
+		tab.flip = false;
+		tab.active_square = null;
+		tab.leela_lock_node = null;
+		tab.pgndata = null;
+		tab.pgn_choices_start = 0;
+		tab.pgndata_merge_into_current = false;
+		tab.book = null;
+		tab.node_to_clean = tab.tree.node;
+		tab.hoverdraw_div = -1;
+		tab.hoverdraw_depth = 0;
+		tab.position_change_time = performance.now();
+		tab.fullbox_comment_node = null;
+		tab.undo_stack = NewUndoStack(this);
+		tab.title = "New game";
+		this.hide_fullbox();
+		this.hide_promotiontable();
+		this.apply_display_flip(tab.flip);
+		fenbox.value = tab.tree.node.board.fen(true);
+		this.refresh_active_tab_title();
+		this.draw();
+		this.looker.add_to_queue(tab.tree.node.board);
+	},
+
 	toggle_go: function() {
-		if (["analysis_free", "self_play", "auto_analysis", "back_analysis"].includes(config.behaviour)) {
+		if (["analysis_free", "self_play", "auto_analysis", "back_analysis"].includes(this.behaviour)) {
 			this.set_behaviour("halt");
-		} else if (config.behaviour === "halt") {
+		} else if (this.behaviour === "halt") {
 			this.set_behaviour("analysis_free");
 		}
 	},
@@ -261,9 +681,9 @@ let hub_props = {
 
 		let ok;
 
-		if (config.behaviour === "auto_analysis") {
+		if (this.behaviour === "auto_analysis") {
 			ok = this.tree.next();
-		} else if (config.behaviour === "back_analysis") {
+		} else if (this.behaviour === "back_analysis") {
 			ok = this.tree.prev();
 		}
 
@@ -318,12 +738,12 @@ let hub_props = {
 		}
 
 		let correct_node = this.tree.node;
-		let correct_behaviour = config.behaviour;
+		let correct_behaviour = this.behaviour;
 
 		// Use a setTimeout to prevent recursion (since move() will cause a call to behave())
 
 		setTimeout(() => {
-			if (this.tree.node === correct_node && config.behaviour === correct_behaviour) {
+			if (this.tree.node === correct_node && this.behaviour === correct_behaviour) {
 				this.move(move);
 			}
 		}, 0);
@@ -338,7 +758,7 @@ let hub_props = {
 		//
 		// The whole thing is a bit sketchy, maybe.
 
-		if (config.behaviour === "play_white" || config.behaviour === "play_black") {
+		if (this.behaviour === "play_white" || this.behaviour === "play_black") {
 			return;
 		}
 
@@ -457,7 +877,11 @@ let hub_props = {
 	spin: function() {
 		this.tick++;
 		this.draw();
-		this.purge_finished_loaders();
+		for (let tab of this.tab_manager.tabs) {
+			this.with_tab(tab, () => {
+				this.purge_finished_loaders();
+			});
+		}
 		this.maybe_save_window_size();
 		setTimeout(this.spin.bind(this), config.update_delay);
 	},
@@ -477,6 +901,10 @@ let hub_props = {
 	// Drawing properties...
 
 	draw: function() {
+
+		if (!this.is_active_context()) {
+			return;
+		}
 
 		// We do the :hover reaction first. This way, we are detecting hover based on the previous cycle's state.
 		// This should prevent the sort of flicker that can occur if we try to detect hover based on changes we
@@ -501,6 +929,7 @@ let hub_props = {
 		this.update_toolbar_state();
 
 		this.grapher.draw(this.tree.node);
+		this.draw_tabs();
 	},
 
 	draw_friendlies_in_table: function(board) {
@@ -809,9 +1238,9 @@ let hub_props = {
 
 	draw_canvas_arrows: function() {
 		boardctx.clearRect(0, 0, canvas.width, canvas.height);
-		if (config.book_explorer) {
+		if (this.book_explorer) {
 			this.draw_explorer_arrows();
-		} else if (config.lichess_explorer) {
+		} else if (this.lichess_explorer) {
 			this.draw_lichess_arrows();
 		} else {
 			let arrow_spotlight_square = config.click_spotlight ? this.active_square : null;
@@ -865,11 +1294,11 @@ let hub_props = {
 
 		let ok = true;
 
-		if (config.looker_api !== "lichess_masters" && config.looker_api !== "lichess_plebs") {
+		if (this.looker_api !== "lichess_masters" && this.looker_api !== "lichess_plebs") {
 			ok = false;
 		}
 
-		let entry = this.looker.lookup(config.looker_api, this.tree.node.board);
+		let entry = this.looker.lookup(this.looker_api, this.tree.node.board);
 
 		if (!entry) {
 			ok = false;
@@ -908,10 +1337,13 @@ let hub_props = {
 	},
 
 	draw_statusbox: function() {
+		if (!this.is_active_context()) {
+			return;
+		}
 
 		let analysing_other = null;
 
-		if (config.behaviour === "analysis_locked" && this.leela_lock_node && this.leela_lock_node !== this.tree.node) {
+		if (this.behaviour === "analysis_locked" && this.leela_lock_node && this.leela_lock_node !== this.tree.node) {
 			if (!this.leela_lock_node.parent) {
 				analysing_other = "root";
 			} else {
@@ -930,6 +1362,11 @@ let hub_props = {
 			}
 		}
 
+		if (!loading_message && this.engine_busy_elsewhere()) {
+			statusbox.innerHTML = `<span class="yellow">Engine is busy in another tab</span>`;
+			return;
+		}
+
 		this.status_handler.draw_statusbox(
 			this.tree.node,
 			this.engine,
@@ -940,18 +1377,24 @@ let hub_props = {
 	},
 
 	draw_enginebox: function() {
+		if (!this.is_active_context()) {
+			return;
+		}
 		enginebox.innerHTML = SafeStringHTML(this.engine.name || "");
 	},
 
 	draw_infobox: function() {
+		if (!this.is_active_context()) {
+			return;
+		}
 		this.info_handler.draw_infobox(
 			this.tree.node,
 			this.mouse_point(),
 			this.active_square,
 			this.tree.node.board.active,
 			this.hoverdraw_div,
-			config.behaviour === "halt" || config.never_suppress_searchmoves,
-			config.looker_api ? this.looker.lookup(config.looker_api, this.tree.node.board) : null);
+			this.behaviour === "halt" || config.never_suppress_searchmoves,
+			this.looker_api ? this.looker.lookup(this.looker_api, this.tree.node.board) : null);
 	},
 
 	// ---------------------------------------------------------------------------------------------------------------------
@@ -977,14 +1420,14 @@ let hub_props = {
 
 		let ok;		// Could be used by 2 different parts of the switch (but not at time of writing...)
 
-		switch (config.behaviour) {
+		switch (this.behaviour) {
 
 		case "self_play":
 		case "play_white":
 		case "play_black":
 
 			if (relevant_node !== this.tree.node) {
-				LogBoth(`(ignored bestmove, relevant_node !== hub.tree.node, config.behaviour was "${config.behaviour}")`);
+				LogBoth(`(ignored bestmove, relevant_node !== hub.tree.node, this.behaviour was "${this.behaviour}")`);
 				this.set_behaviour("halt");
 				break;
 			}
@@ -1007,7 +1450,7 @@ let hub_props = {
 		case "back_analysis":
 
 			if (relevant_node !== this.tree.node) {
-				LogBoth(`(ignored bestmove, relevant_node !== hub.tree.node, config.behaviour was "${config.behaviour}")`);
+				LogBoth(`(ignored bestmove, relevant_node !== hub.tree.node, this.behaviour was "${this.behaviour}")`);
 				this.set_behaviour("halt");
 			} else {
 				this.continue_auto_analysis();
@@ -1138,7 +1581,7 @@ let hub_props = {
 
 		let cfg_value;
 
-		switch (config.behaviour) {
+		switch (this.behaviour) {
 
 		case "play_white":
 		case "play_black":
@@ -1634,8 +2077,8 @@ let hub_props = {
 
 			if (table_move && table_move.__touched) {		// Allow this to happen if the move is touched
 				this.move(move);
-			} else if (config.looker_api) {					// Allow this to happen if the move is in the selected API database
-				let db_entry = this.looker.lookup(config.looker_api, this.tree.node.board);
+			} else if (this.looker_api) {					// Allow this to happen if the move is in the selected API database
+				let db_entry = this.looker.lookup(this.looker_api, this.tree.node.board);
 				if (db_entry && db_entry.moves[move]) {
 					this.move(move);
 				}
@@ -1646,7 +2089,7 @@ let hub_props = {
 	// Note that the various tree.methods() return whether or not the current node changed.
 
 	return_to_lock: function() {
-		if (config.behaviour === "analysis_locked") {
+		if (this.behaviour === "analysis_locked") {
 			if (this.tree.set_node(this.leela_lock_node)) {		// Fool-proof against null / destroyed.
 				this.position_changed(false, true);
 			}
@@ -1918,11 +2361,13 @@ let hub_props = {
 				this.pgndata = pgndata;
 				this.pgn_choices_start = 0;
 				this.pgndata_merge_into_current = merge_into_current;
+				this.refresh_active_tab_title();
 			}
 		} else {
 			this.pgndata = pgndata;
 			this.pgn_choices_start = 0;
 			this.pgndata_merge_into_current = merge_into_current;
+			this.refresh_active_tab_title();
 			this.show_pgn_chooser();
 		}
 	},
@@ -1971,6 +2416,7 @@ let hub_props = {
 		if (!merge_into_current) {
 			this.tree.replace_tree(imported_root);
 			this.position_changed(true, true);
+			this.refresh_active_tab_title();
 			return true;
 		}
 
@@ -1987,6 +2433,7 @@ let hub_props = {
 		this.tree.tree_version++;
 		this.tree.dom_from_scratch();
 		this.position_changed(false, true);
+		this.refresh_active_tab_title();
 
 		return true;
 	},
@@ -2147,6 +2594,7 @@ let hub_props = {
 
 		this.tree.replace_tree(NewRoot(board));
 		this.position_changed(true, true);
+		this.refresh_active_tab_title();
 	},
 
 	load_from_fenbox: function(s) {
@@ -2541,15 +2989,15 @@ let hub_props = {
 		// Cases that have additional actions after...
 
 		if (option === "book_explorer") {
-			config.lichess_explorer = false;
+			this.lichess_explorer = false;
 			this.explorer_objects_cache = null;
 		}
 		if (option === "lichess_explorer") {
-			config.book_explorer = false;
+			this.book_explorer = false;
 			this.explorer_objects_cache = null;
 		}
 		if (option === "look_past_25") {
-			if (config.look_past_25 && this.tree.node.board.fullmove > 25) {
+			if (this.look_past_25 && this.tree.node.board.fullmove > 25) {
 				this.looker.add_to_queue(this.tree.node.board);
 			}
 		}
@@ -2563,22 +3011,8 @@ let hub_props = {
 	},
 
 	toggle_flip: function() {						// config.flip should not be directly set, call this function instead.
-
-		config.flip = !config.flip;
-
-		for (let x = 0; x < 8; x++) {
-			for (let y = 0; y < 4; y++) {
-
-				let first = document.getElementById(`overlay_${S(x, y)}`);
-				let second = document.getElementById(`overlay_${S(7 - x, 7 - y)}`);
-				SwapElements(first, second);
-
-				first = document.getElementById(`underlay_${S(x, y)}`);
-				second = document.getElementById(`underlay_${S(7 - x, 7 - y)}`);
-				SwapElements(first, second);
-			}
-		}
-
+		this.flip = !this.flip;
+		this.apply_display_flip(this.flip);
 		this.draw();								// For the canvas stuff.
 	},
 
@@ -2590,11 +3024,11 @@ let hub_props = {
 
 	set_looker_api: function(value) {
 
-		if (config.looker_api === value) {
+		if (this.looker_api === value) {
 			return;
 		}
 
-		config.looker_api = value;
+		this.looker_api = value;
 
 		if (value && value.includes("lichess") && !config.lichess_token) {
 			alert(messages.lichess_token_needed);
@@ -2665,18 +3099,30 @@ let hub_props = {
 	},
 
 	update_toolbar_state: function() {
+		if (!this.is_active_context()) {
+			return;
+		}
 		let go_button = document.getElementById("toolbar_go");
 		let halt_button = document.getElementById("toolbar_halt");
+		let lock_button = document.getElementById("toolbar_lock");
+		let auto_button = document.getElementById("toolbar_auto");
 		let return_button = document.getElementById("toolbar_return");
 		let clear_focus_button = document.getElementById("toolbar_clear_focus");
 		let multipv_down_button = document.getElementById("toolbar_multipv_down");
 		let multipv_up_button = document.getElementById("toolbar_multipv_up");
+		let busy_elsewhere = this.engine_busy_elsewhere();
 
 		if (go_button) {
-			go_button.disabled = (config.behaviour !== "halt");
+			go_button.disabled = busy_elsewhere || (this.behaviour !== "halt");
 		}
 		if (halt_button) {
-			halt_button.disabled = (config.behaviour === "halt");
+			halt_button.disabled = busy_elsewhere || (this.behaviour === "halt");
+		}
+		if (lock_button) {
+			lock_button.disabled = busy_elsewhere;
+		}
+		if (auto_button) {
+			auto_button.disabled = busy_elsewhere;
 		}
 		if (return_button) {
 			return_button.disabled = !this.leela_lock_node;
@@ -2844,12 +3290,9 @@ let hub_props = {
 	},
 
 	send_title: function() {
-		let title = "Nibbler";
-		let root = this.tree.root;
-		if (root.tags && root.tags.White && root.tags.White !== "White" && root.tags.Black && root.tags.Black !== "Black") {
-			title += `: ${root.tags.White} - ${root.tags.Black}`;
-		}
-		ipcRenderer.send("set_title", UnsafeStringHTML(title));		// Fix any &amp; and that sort of thing in the names.
+		let tab = this.active_tab();
+		let title = `Nibbler: ${tab.title || "New game"}`;
+		ipcRenderer.send("set_title", title);
 	},
 
 	generate_simple_book: function() {		// For https://github.com/rooklift/lc0_lichess

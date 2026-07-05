@@ -413,7 +413,14 @@ function CanvasCoords(x, y) {
 	let x2 = x1 + css;
 	let y2 = y1 + css;
 
-	if (config.flip) {
+	let flip = false;
+	if (typeof hub === "object" && hub && typeof hub.flip === "boolean") {
+		flip = hub.flip;
+	} else if (typeof config.flip === "boolean") {
+		flip = config.flip;
+	}
+
+	if (flip) {
 		[x1, x2] = [(css * 8) - x2, (css * 8) - x1];
 		[y1, y2] = [(css * 8) - y2, (css * 8) - y1];
 	}

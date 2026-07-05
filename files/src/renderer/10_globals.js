@@ -11,6 +11,7 @@ const canvas = document.getElementById("canvas");
 const enginebox = document.getElementById("enginebox");
 const fenbox = document.getElementById("fenbox");
 const graph = document.getElementById("graph");
+const tabbar = document.getElementById("tabbar");
 const rightgridder = document.getElementById("rightgridder");
 const infobox = document.getElementById("infobox");
 const movelist = document.getElementById("movelist");

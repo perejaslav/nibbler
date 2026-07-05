@@ -182,6 +182,10 @@ analysistoolbar.addEventListener("mousedown", (event) => {
 	hub.toolbar_click(event);
 });
 
+tabbar.addEventListener("mousedown", (event) => {
+	hub.tabbar_click(event);
+});
+
 promotiontable.addEventListener("mousedown", (event) => {
 	hub.promotiontable_click(event);
 });

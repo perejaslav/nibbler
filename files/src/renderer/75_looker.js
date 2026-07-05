@@ -11,8 +11,9 @@
 // Note: format of entries in the DB is {type: "foo", moves: {}}
 // where moves is a map of string --> object
 
-function NewLooker() {
+function NewLooker(hub) {
 	let looker = Object.create(null);
+	looker.hub = hub;
 	looker.running = null;
 	looker.pending = null;
 	looker.all_dbs = Object.create(null);
@@ -30,11 +31,15 @@ let looker_props = {
 
 	add_to_queue: function(board) {
 
-		if (!config.looker_api || !board.normalchess) {
+		let tab = this.hub ? this.hub.current_tab() : null;
+		let looker_api = tab ? tab.looker_api : null;
+		let look_past_25 = tab ? tab.look_past_25 : false;
+
+		if (!looker_api || !board.normalchess) {
 			return;
 		}
 
-		if (!config.look_past_25 && board.fullmove > 25) {
+		if (!look_past_25 && board.fullmove > 25) {
 			return;
 		}
 
@@ -43,7 +48,8 @@ let looker_props = {
 
 		let query = {							// Since queries are objects, different queries can always be told apart.
 			board: board,
-			db_name: config.looker_api
+			db_name: looker_api,
+			tab_id: tab ? tab.id : null
 		};
 
 		if (!this.running) {
@@ -166,7 +172,12 @@ let looker_props = {
 		return fetch(url, fetch_options).then(response => {
 			if (response.status === 429) {										// rate limit hit
 				this.set_ban(query.db_name);
-				hub.set_special_message("429 Too Many Requests", "red", 5000);	// relies on hub being in script/global scope, which it is
+				let tab = this.hub ? this.hub.tab_manager.find(query.tab_id) : null;
+				if (tab) {
+					this.hub.with_tab(tab, () => {
+						this.hub.set_special_message("429 Too Many Requests", "red", 5000);
+					});
+				}
 				throw new Error("rate limited");
 			}
 			if (!response.ok) {													// ok means status in range 200-299

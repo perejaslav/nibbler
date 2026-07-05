@@ -232,7 +232,7 @@ let infobox_props = {
 				extra_stat_strings = extra_stat_strings.concat(stats_list);
 			}
 
-			if (config.looker_api) {
+			if (hub.looker_api) {
 				let api_string = "API: ?";
 				if (ltype && lookup_moves) {
 					let pov = null;

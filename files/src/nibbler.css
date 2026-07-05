@@ -6,6 +6,9 @@ body {
 	background-color: #080808;
 	border: 0;
 	color: #eeeeee;
+	display: flex;
+	flex-direction: column;
+	height: 100%;
 	cursor: default;
 	margin: 0;
 	overflow: hidden;
@@ -25,8 +28,10 @@ body {
 }
 
 #gridder {
+	flex: 1 1 auto;
 	display: grid;
-	height: 100vh;
+	height: auto;
+	min-height: 0;
 	grid-template-columns: min-content 1fr;
 	grid-template-rows: min-content min-content 1fr;
 	grid-template-areas:
@@ -181,6 +186,67 @@ input[type=text]:focus {
 	position: fixed;
 	table-layout: fixed;
 	z-index: 4;
+}
+
+#tabbar {
+	background: #1d1d1d;
+	color: #d0d0d0;
+	display: flex;
+	font-family: monospace, monospace;
+	font-size: 12px;
+	gap: 4px;
+	overflow-x: auto;
+	padding: 4px 6px 0 6px;
+	pointer-events: auto;
+	user-select: none;
+	white-space: nowrap;
+}
+
+.tab_item {
+	align-items: center;
+	background: #282828;
+	border: 1px solid #444444;
+	border-bottom: none;
+	border-radius: 4px 4px 0 0;
+	cursor: pointer;
+	display: inline-flex;
+	gap: 6px;
+	max-width: 220px;
+	padding: 4px 8px;
+}
+
+.tab_item_active {
+	background: #3b3b3b;
+	color: #ffffff;
+}
+
+.tab_title {
+	flex: 1 1 auto;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.tab_close,
+.tab_add {
+	background: #202020;
+	border: 1px solid #555555;
+	color: inherit;
+	cursor: pointer;
+	flex: 0 0 auto;
+	font: inherit;
+	padding: 0 6px;
+}
+
+.tab_close {
+	border-radius: 3px;
+	line-height: 1.2;
+}
+
+.tab_add {
+	margin-left: auto;
+	border-radius: 4px 4px 0 0;
 }
 
 #fullbox {

@@ -1249,6 +1249,39 @@ function menu_build() {
 			]
 		},
 		{
+			label: translate.t("Tabs"),
+			submenu: [
+				{
+					label: translate.t("New tab"),
+					accelerator: "CommandOrControl+T",
+					click: () => {
+						win.webContents.send("call", "new_tab");
+					}
+				},
+				{
+					label: translate.t("Close tab"),
+					accelerator: "CommandOrControl+W",
+					click: () => {
+						win.webContents.send("call", "close_current_tab");
+					}
+				},
+				{
+					label: translate.t("Next tab"),
+					accelerator: "CommandOrControl+Tab",
+					click: () => {
+						win.webContents.send("call", "activate_next_tab");
+					}
+				},
+				{
+					label: translate.t("Previous tab"),
+					accelerator: "CommandOrControl+Shift+Tab",
+					click: () => {
+						win.webContents.send("call", "activate_previous_tab");
+					}
+				},
+			]
+		},
+		{
 			label: translate.t("Display"),
 			submenu: [
 				{
@@ -1535,7 +1568,7 @@ function menu_build() {
 					submenu: [
 						{
 							label: translate.t("Centipawns"),
-							accelerator: "CommandOrControl+T",
+							accelerator: "CommandOrControl+Shift+T",
 							type: "checkbox",
 							checked: config.show_cp,
 							click: () => {

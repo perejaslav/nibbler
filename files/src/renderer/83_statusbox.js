@@ -40,7 +40,7 @@ function NewStatusHandler() {
 
 			statusbox.innerHTML =
 			`<span class="${cl}">${status}</span>, ` +
-			`${config.behaviour}, ` +
+			`${hub.behaviour}, ` +
 			`${engine.last_send}`;
 
 		} else if (!engine.ever_received_uciok) {
@@ -75,23 +75,23 @@ function NewStatusHandler() {
 
 			let status_string = "";
 
-			if (config.behaviour === "halt" && !engine.search_running.node) {
+			if (hub.behaviour === "halt" && !engine.search_running.node) {
 				status_string += `<span id="gobutton_clicker" class="yellow">HALTED (go?) </span>`;
-			} else if (config.behaviour === "halt" && engine.search_running.node) {
+			} else if (hub.behaviour === "halt" && engine.search_running.node) {
 				status_string += `<span class="yellow">HALTING... </span>`;
-			} else if (config.behaviour === "analysis_locked") {
+			} else if (hub.behaviour === "analysis_locked") {
 				status_string += `<span class="blue">Locked! </span>`;
-			} else if (config.behaviour === "play_white" && node.board.active !== "w") {
+			} else if (hub.behaviour === "play_white" && node.board.active !== "w") {
 				status_string += `<span class="yellow">YOUR MOVE </span>`;
-			} else if (config.behaviour === "play_black" && node.board.active !== "b") {
+			} else if (hub.behaviour === "play_black" && node.board.active !== "b") {
 				status_string += `<span class="yellow">YOUR MOVE </span>`;
-			} else if (config.behaviour === "self_play") {
+			} else if (hub.behaviour === "self_play") {
 				status_string += `<span class="green">Self-play! </span>`;
-			} else if (config.behaviour === "auto_analysis") {
+			} else if (hub.behaviour === "auto_analysis") {
 				status_string += `<span class="green">Auto-eval! </span>`;
-			} else if (config.behaviour === "back_analysis") {
+			} else if (hub.behaviour === "back_analysis") {
 				status_string += `<span class="green">Back-eval! </span>`;
-			} else if (config.behaviour === "analysis_free") {
+			} else if (hub.behaviour === "analysis_free") {
 				if (hub.engine.sent_options.contempt !== undefined && hub.engine.sent_options.contempt !== "0") {
 					status_string += `<span id="haltbutton_clicker" class="green">Contempt active! </span>`;
 				} else {
@@ -99,14 +99,14 @@ function NewStatusHandler() {
 				}
 			}
 
-			if (config.book_explorer) {
+			if (hub.book_explorer) {
 
 				let warn = book_is_loaded ? "" : " (No book loaded)";
 				status_string += `<span class="blue">Book frequency arrows only!${warn}</span>`;
 
-			} else if (config.lichess_explorer) {
+			} else if (hub.lichess_explorer) {
 
-				let warn = (config.looker_api === "lichess_masters" || config.looker_api === "lichess_plebs") ? "" : " (API not selected)";
+				let warn = (hub.looker_api === "lichess_masters" || hub.looker_api === "lichess_plebs") ? "" : " (API not selected)";
 				status_string += `<span class="blue">Lichess frequency arrows only!${warn}</span>`;
 
 			} else {
@@ -122,7 +122,7 @@ function NewStatusHandler() {
 
 					let stoppedtext = "";
 
-					if (config.behaviour !== "halt") {
+					if (hub.behaviour !== "halt") {
 						stoppedtext = ` <span class="blue">(stopped)</span>`;
 					}
 /*

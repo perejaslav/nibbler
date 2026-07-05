@@ -218,8 +218,13 @@ function NewEngine(hub) {
 		this.send(s);
 		this.search_running = this.search_desired;
 		this.suppress_cycle_info = null;
-		this.hub.info_handler.engine_cycle++;
-		this.hub.info_handler.engine_subcycle++;
+		let tab = this.hub.find_tab_for_node(this.search_running.node) || this.hub.active_tab();
+		if (tab) {
+			this.hub.with_tab(tab, () => {
+				this.hub.info_handler.engine_cycle++;
+				this.hub.info_handler.engine_subcycle++;
+			});
+		}
 	};
 
 	eng.set_search_desired = function(node, limit, limit_by_time, searchmoves) {
@@ -299,7 +304,12 @@ function NewEngine(hub) {
 			if (report_bestmove) {
 				Log("< " + line);
 				this.send_queued_setoptions();									// After logging the incoming.
-				this.hub.receive_bestmove(line, this.search_completed.node);	// May trigger a new search, so do it last.
+				let tab = this.hub.find_tab_for_node(this.search_completed.node) || this.hub.active_tab();
+				if (tab) {
+					this.hub.with_tab(tab, () => {
+						this.hub.receive_bestmove(line, this.search_completed.node);	// May trigger a new search, so do it last.
+					});
+				}
 			} else {
 				Log("(ignore halted) < " + line);
 				this.send_queued_setoptions();									// After logging the incoming.
@@ -315,7 +325,12 @@ function NewEngine(hub) {
 
 		if (line.startsWith("info string ERROR")) {								// Stockfish sends these.
 			Log("< " + line);
-			this.hub.info_handler.err_receive(line.slice(12));
+			let tab = this.hub.find_tab_for_node(this.search_running.node) || this.hub.active_tab();
+			if (tab) {
+				this.hub.with_tab(tab, () => {
+					this.hub.info_handler.err_receive(line.slice(12));
+				});
+			}
 			return;
 		}
 
@@ -345,7 +360,12 @@ function NewEngine(hub) {
 			return;
 		}
 
-		this.hub.info_handler.receive(this, this.search_running, line);		// Responsible for logging lines that get this far.
+		let tab = this.hub.find_tab_for_node(this.search_running.node) || this.hub.active_tab();
+		if (tab) {
+			this.hub.with_tab(tab, () => {
+				this.hub.info_handler.receive(this, this.search_running, line);		// Responsible for logging lines that get this far.
+			});
+		}
 	};
 
 	eng.setoption = function(name, value) {

@@ -1,0 +1,39 @@
+"use strict";
+
+function NewTab(id, hub) {
+	let tree = NewTreeHandler();
+	return {
+		id: id,
+		title: "New game",
+		tree: tree,
+		flip: false,
+		behaviour: config.behaviour,
+		active_square: null,
+		leela_lock_node: null,
+		pgndata: null,
+		pgn_choices_start: 0,
+		pgndata_merge_into_current: false,
+		book: null,
+		book_explorer: false,
+		lichess_explorer: false,
+		looker_api: config.looker_api || null,
+		look_past_25: !!config.look_past_25,
+		node_to_clean: tree.node,
+		hoverdraw_div: -1,
+		hoverdraw_depth: 0,
+		position_change_time: performance.now(),
+		fullbox_comment_node: null,
+		undo_stack: NewUndoStack(hub),
+		grapher: NewGrapher(),
+		looker: NewLooker(hub),
+		info_handler: NewInfoHandler(),
+		status_handler: NewStatusHandler(),
+		loaders: [],
+		friendly_draws: New2DArray(8, 8, null),
+		enemy_draws: New2DArray(8, 8, null),
+		dirty_squares: New2DArray(8, 8, null),
+		tick: 0,
+		explorer_objects_cache: null,
+		explorer_cache_node_id: null,
+	};
+}

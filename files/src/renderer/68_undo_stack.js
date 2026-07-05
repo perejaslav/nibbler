@@ -128,7 +128,7 @@ function NewUndoStack(hub) {
 			current_node_id: cloned_current_id,
 			leela_lock_node_id: cloned_lock_id,
 			active_square: hub.active_square,
-			behaviour: config.behaviour
+			behaviour: hub.behaviour
 		};
 	};
 
@@ -207,7 +207,7 @@ function NewUndoStack(hub) {
 		}
 
 		// Stop engine first if running
-		if (config.behaviour !== "halt") {
+		if (this.hub.behaviour !== "halt") {
 			this.hub.set_behaviour("halt");
 		}
 
@@ -234,7 +234,7 @@ function NewUndoStack(hub) {
 			return false;
 		}
 
-		if (config.behaviour !== "halt") {
+		if (this.hub.behaviour !== "halt") {
 			this.hub.set_behaviour("halt");
 		}
 
@@ -267,9 +267,10 @@ function NewUndoStack(hub) {
 			return fn();
 		}
 
-		// Stop engine before any tree modification
-		let was_running = (config.behaviour !== "halt");
-		if (was_running) {
+		// Stop engine before any tree modification, then restore the user's mode
+		// after a successful operation.
+		let previous_behaviour = this.hub.behaviour;
+		if (previous_behaviour !== "halt") {
 			this.hub.set_behaviour("halt");
 		}
 
@@ -302,11 +303,9 @@ function NewUndoStack(hub) {
 			this.undo_stack = this.undo_stack.slice(this.undo_stack.length - this.max_size);
 		}
 
-		// Resume engine if it was running (user might want this)
-		// Actually, don't resume -- let user restart manually to be safe
-		// if (was_running) {
-		//     this.hub.set_behaviour("analysis_free");
-		// }
+		if (previous_behaviour !== "halt") {
+			this.hub.set_behaviour(previous_behaviour);
+		}
 
 		return result;
 	};
