@@ -32,6 +32,10 @@ function loadNewEngine() {
 			});
 		}
 
+		emit(event, ...args) {
+			for (let callback of this.listeners[event] || []) callback(...args);
+		}
+
 		kill() {}
 	}
 
@@ -84,6 +88,12 @@ function loadNewEngine() {
 		ipcRenderer: {
 			send: (...args) => ipcMessages.push(args),
 		},
+		require: modulePath => {
+			if (modulePath === "../modules/engine_lab") {
+				return require("../../files/src/modules/engine_lab");
+			}
+			throw new Error(`Unexpected module: ${modulePath}`);
+		},
 		config: {
 			searchmoves_buttons: false,
 			log_positions: false,
@@ -101,6 +111,32 @@ function makeRoute() {
 	return {
 		misc: [],
 		errors: [],
+		events: {
+			onReady: [],
+			onInfo: [],
+			onBestmove: [],
+			onError: [],
+			onExit: [],
+			onStateChanged: [],
+		},
+		onReady(engine, event) {
+			this.events.onReady.push(event);
+		},
+		onInfo(engine, event) {
+			this.events.onInfo.push(event);
+		},
+		onBestmove(engine, event) {
+			this.events.onBestmove.push(event);
+		},
+		onError(engine, event) {
+			this.events.onError.push(event);
+		},
+		onExit(engine, event) {
+			this.events.onExit.push(event);
+		},
+		onStateChanged(engine, event) {
+			this.events.onStateChanged.push(event);
+		},
 		receive_misc(line) {
 			this.misc.push(line);
 		},
@@ -227,4 +263,35 @@ test("NewEngine ignores output from an older process generation", () => {
 
 	assert.equal(engine.process_generation, 2);
 	assert.deepEqual(route.misc, ["id name Current Process"]);
+});
+
+test("NewEngine emits structured lifecycle events for one search", () => {
+	let harness = loadNewEngine();
+	let route = makeRoute();
+	let engine = harness.NewEngine({}, {event_sink: route, ack_to_main: false});
+	engine.setup("C:\\engines\\first.exe", []);
+	let stdout = harness.scanners[0];
+	stdout.emit("line", "uciok");
+	stdout.emit("line", "readyok");
+
+	let node = makeNode("event-node");
+	engine.set_search_desired(node, 100, false, []);
+	stdout.emit("line", "info depth 12 time 50 nodes 1000 nps 20000 score cp 34 multipv 1 pv e2e4 e7e5");
+	stdout.emit("line", "bestmove e2e4 ponder e7e5");
+	harness.processes[0].emit("exit", 0, null);
+
+	assert.equal(route.events.onReady.length, 1);
+	assert.equal(route.events.onReady[0].processGeneration, 1);
+	assert.equal(route.events.onInfo.length, 1);
+	assert.equal(route.events.onInfo[0].searchId, 1);
+	assert.equal(route.events.onInfo[0].depth, 12);
+	assert.equal(route.events.onInfo[0].pv[0], "e2e4");
+	assert.equal(Object.prototype.hasOwnProperty.call(route.events.onInfo[0], "line"), false);
+	assert.equal(route.events.onBestmove[0].move, "e2e4");
+	assert.equal(route.events.onBestmove[0].searchId, 1);
+	assert.deepEqual(route.events.onStateChanged.map(event => event.searchState), [
+		"searching",
+		"idle",
+	]);
+	assert.deepEqual(route.events.onExit, [{code: 0, signal: null, expected: false, processGeneration: 1}]);
 });
