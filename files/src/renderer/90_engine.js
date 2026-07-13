@@ -42,6 +42,17 @@ We are in one of these states (currently implicit in the logic):
 const GUI_WANTS_TO_KNOW = ["Backend", "EvalFile", "WeightsFile", "SyzygyPath", "Threads", "Hash", "MultiPV",
 	"ContemptMode", "Contempt", "WDLCalibrationElo", "WDLEvalObjectivity", "ScoreType", "Temperature", "TempDecayMoves"];
 
+const engine_lab = require("../modules/engine_lab");
+
+function parse_bestmove_line(line) {
+	let tokens = line.trim().split(/\s+/);
+	if (tokens[0] !== "bestmove") return null;
+	return {
+		move: tokens[1] || null,
+		ponder: tokens[2] === "ponder" ? (tokens[3] || null) : null,
+	};
+}
+
 let NoSearch = Object.freeze({
 	node: null,
 	limit: null,
@@ -106,6 +117,22 @@ function NewEngine(hub, options = null) {
 	eng.next_search_id = 1;
 	eng.active_search_id = null;
 	eng.search_state = "idle";
+
+	eng.emit_event = function(name, payload = {}) {
+		let callback = this.event_sink && this.event_sink[name];
+		if (typeof callback === "function") {
+			callback.call(this.event_sink, this, Object.assign({processGeneration: this.process_generation}, payload));
+		}
+	};
+
+	eng.set_search_state = function(state) {
+		if (this.search_state === state) return;
+		this.search_state = state;
+		this.emit_event("onStateChanged", {
+			searchState: state,
+			searchId: this.active_search_id,
+		});
+	};
 
 	eng.search_running = NoSearch;		// The search actually being run right now.
 	eng.search_desired = NoSearch;		// The search we want Leela to be running. Often the same object as above.
@@ -179,7 +206,7 @@ function NewEngine(hub, options = null) {
 			this.search_running = NoSearch;
 			this.search_desired = NoSearch;
 			this.active_search_id = null;
-			this.search_state = "idle";
+			this.set_search_state("idle");
 			return;
 		}
 
@@ -229,7 +256,7 @@ function NewEngine(hub, options = null) {
 		this.send(s);
 		this.search_running = this.search_desired;
 		this.active_search_id = this.search_running.searchId;
-		this.search_state = "searching";
+		this.set_search_state("searching");
 		this.suppress_cycle_info = null;
 		let tab = this.event_sink.find_tab_for_node(this.search_running.node) || this.event_sink.active_tab();
 		if (tab) {
@@ -270,7 +297,7 @@ function NewEngine(hub, options = null) {
 
 		if (this.search_running.node) {
 			this.send("stop");
-			this.search_state = "stopping";
+			this.set_search_state("stopping");
 			if (!this.unresolved_stop_time) {
 				this.unresolved_stop_time = performance.now();
 			}
@@ -278,7 +305,7 @@ function NewEngine(hub, options = null) {
 			if (this.search_desired.node) {
 				this.send_desired();
 			} else {
-				this.search_state = "idle";
+				this.set_search_state("idle");
 			}
 		}
 
@@ -319,7 +346,13 @@ function NewEngine(hub, options = null) {
 
 		if (no_new_search) {
 			this.search_desired = NoSearch;
-			this.search_state = "idle";
+			this.set_search_state("idle");
+			let bestmove = parse_bestmove_line(line);
+			this.emit_event("onBestmove", Object.assign({
+				searchId: this.search_completed.searchId,
+				node: this.search_completed.node,
+				accepted: Boolean(report_bestmove),
+			}, bestmove || {}));
 			if (report_bestmove) {
 				Log("< " + line);
 				this.send_queued_setoptions();									// After logging the incoming.
@@ -344,6 +377,11 @@ function NewEngine(hub, options = null) {
 
 		if (line.startsWith("info string ERROR")) {								// Stockfish sends these.
 			Log("< " + line);
+			this.emit_event("onError", {
+				kind: "engine",
+				message: line.slice(12),
+				searchId: this.search_running.searchId,
+			});
 			let tab = this.event_sink.find_tab_for_node(this.search_running.node) || this.event_sink.active_tab();
 			if (tab) {
 				this.event_sink.with_tab(tab, () => {
@@ -384,6 +422,15 @@ function NewEngine(hub, options = null) {
 			this.event_sink.with_tab(tab, () => {
 				this.event_sink.info_handler.receive(this, this.search_running, line);		// Responsible for logging lines that get this far.
 			});
+		}
+
+		let parsed = engine_lab.parseInfoLine(line);
+		if (parsed) {
+			this.emit_event("onInfo", Object.assign(parsed, {
+				searchId: this.search_running.searchId,
+				node: this.search_running.node,
+				receivedAt: Date.now(),
+			}));
 		}
 	};
 
@@ -473,11 +520,24 @@ function NewEngine(hub, options = null) {
 		}
 
 		this.exe.once("error", (err) => {
+			this.emit_event("onError", {
+				kind: "process",
+				message: err.toString(),
+			});
 			if (this.event_sink && typeof this.event_sink.on_error === "function") {
 				this.event_sink.on_error(this, err);
 			} else {
 				alert(err);
 			}
+		});
+
+		this.exe.once("exit", (code, signal) => {
+			if (process_generation !== this.process_generation) return;
+			this.emit_event("onExit", {
+				code: code,
+				signal: signal,
+				expected: this.have_quit,
+			});
 		});
 
 		this.scanner = readline.createInterface({
@@ -496,6 +556,10 @@ function NewEngine(hub, options = null) {
 			if (process_generation !== this.process_generation) return;
 			if (this.have_quit) return;
 			Log(". " + line);
+			this.emit_event("onError", {
+				kind: "stderr",
+				message: line,
+			});
 			this.event_sink.err_receive(SafeStringHTML(line));
 		});
 
@@ -528,6 +592,10 @@ function NewEngine(hub, options = null) {
 				}
 				if (line.startsWith("readyok")) {
 					this.ever_received_readyok = true;
+					this.emit_event("onReady", {
+						name: this.name,
+						knownOptions: this.known_options,
+					});
 				}
 				this.event_sink.receive_misc(SafeStringHTML(line));
 			}

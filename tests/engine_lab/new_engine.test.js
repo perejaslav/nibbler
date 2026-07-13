@@ -293,5 +293,9 @@ test("NewEngine emits structured lifecycle events for one search", () => {
 		"searching",
 		"idle",
 	]);
-	assert.deepEqual(route.events.onExit, [{code: 0, signal: null, expected: false, processGeneration: 1}]);
+	assert.equal(route.events.onExit.length, 1);
+	assert.equal(route.events.onExit[0].code, 0);
+	assert.equal(route.events.onExit[0].signal, null);
+	assert.equal(route.events.onExit[0].expected, false);
+	assert.equal(route.events.onExit[0].processGeneration, 1);
 });

@@ -47,6 +47,34 @@ function NewEngineManager(hub, options = null) {
 	manager.make_event_sink = function(session) {
 		let manager_ref = this;
 		return {
+			onReady(engine, event) {
+				session.processGeneration = event.processGeneration;
+				session.lifecycleState = "ready";
+				session.uciState = "idle";
+				if (event.name) session.name = event.name;
+			},
+			onInfo(engine, event) {
+				session.processGeneration = event.processGeneration;
+				session.lastInfo = event;
+			},
+			onBestmove(engine, event) {
+				session.processGeneration = event.processGeneration;
+				session.lastBestmove = event;
+			},
+			onError(engine, event) {
+				session.processGeneration = event.processGeneration;
+				manager_ref.fail_session(session, event.message);
+			},
+			onExit(engine, event) {
+				session.processGeneration = event.processGeneration;
+				session.lastExit = event;
+				if (!event.expected) manager_ref.fail_session(session, "Engine exited");
+			},
+			onStateChanged(engine, event) {
+				session.processGeneration = event.processGeneration;
+				session.searchState = event.searchState;
+				session.activeSearchId = event.searchId;
+			},
 			find_tab_for_node(node) {
 				return manager_ref.hub && typeof manager_ref.hub.find_tab_for_node === "function" ?
 					manager_ref.hub.find_tab_for_node(node) : null;
@@ -127,6 +155,11 @@ function NewEngineManager(hub, options = null) {
 			name: engine.name || "",
 			lastError: null,
 			lastBestmove: null,
+			lastInfo: null,
+			lastExit: null,
+			processGeneration: 0,
+			searchState: "idle",
+			activeSearchId: null,
 		};
 		this.sessions[session.sessionId] = session;
 		this.primary_session = session;
@@ -153,6 +186,11 @@ function NewEngineManager(hub, options = null) {
 			name: "",
 			lastError: null,
 			lastBestmove: null,
+			lastInfo: null,
+			lastExit: null,
+			processGeneration: 0,
+			searchState: "idle",
+			activeSearchId: null,
 		};
 		session.event_sink = this.make_event_sink(session);
 		session.engine = this.engine_factory(this.hub, {
