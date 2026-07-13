@@ -119,7 +119,7 @@ test("createConsensus combines candidate moves and reports agreement", () => {
 			{multipv: 2, pv: ["d2d4"], score: {type: "cp", value: 12}},
 		],
 		lc0: [
-			{multipv: 1, pv: ["e2e4"], wdl: {win: 520, draw: 460, loss: 20}},
+			{multipv: 1, pv: ["e2e4"], wdl: {win: 300, draw: 440, loss: 260}},
 			{multipv: 2, pv: ["c2c4"], wdl: {win: 500, draw: 450, loss: 50}},
 		],
 	});

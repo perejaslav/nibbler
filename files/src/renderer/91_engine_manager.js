@@ -137,6 +137,10 @@ function NewEngineManager(hub, options = null) {
 		return results;
 	};
 
+	manager.get_consensus = function(tab_id, options = {}) {
+		return engine_lab.createConsensus(this.get_results(tab_id), options);
+	};
+
 	manager.profile = function(profile_key) {
 		let profile = this.profile_loader(profile_key);
 		if (!profile || typeof profile !== "object") {
