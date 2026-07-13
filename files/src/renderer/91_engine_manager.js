@@ -77,6 +77,43 @@ function NewEngineManager(hub, options = null) {
 		return this.list_sessions().filter(session => session.tabId === tab_id);
 	};
 
+	manager.dispatch_analysis = function(session) {
+		if (!session.analysisRequest || !session.engine ||
+			!session.engine.ever_received_uciok || !session.engine.ever_received_readyok) return false;
+		let request = session.analysisRequest;
+		session.engine.set_search_desired(request.node, request.limit, request.limit_by_time, request.searchmoves);
+		return true;
+	};
+
+	manager.start_analysis = function(tab_id, node, limits = {}) {
+		let sessions = this.sessions_for_tab(tab_id);
+		if (!node || sessions.length === 0) return false;
+		let request = {
+			node,
+			nodeId: node.id || null,
+			limit: limits.limit === undefined ? null : limits.limit,
+			limit_by_time: !!limits.limit_by_time,
+			searchmoves: Array.isArray(limits.searchmoves) ? limits.searchmoves.slice() : [],
+		};
+		for (let session of sessions) {
+			session.analysisRequest = request;
+			this.dispatch_analysis(session);
+		}
+		return true;
+	};
+
+	manager.stop_analysis = function(tab_id) {
+		let sessions = this.sessions_for_tab(tab_id);
+		if (sessions.length === 0) return false;
+		for (let session of sessions) {
+			session.analysisRequest = null;
+			if (session.engine && typeof session.engine.set_search_desired === "function") {
+				session.engine.set_search_desired(null);
+			}
+		}
+		return true;
+	};
+
 	manager.profile = function(profile_key) {
 		let profile = this.profile_loader(profile_key);
 		if (!profile || typeof profile !== "object") {
@@ -93,6 +130,7 @@ function NewEngineManager(hub, options = null) {
 				session.lifecycleState = "ready";
 				session.uciState = "idle";
 				if (event.name) session.name = event.name;
+				manager_ref.dispatch_analysis(session);
 			},
 			onInfo(engine, event) {
 				session.processGeneration = event.processGeneration;
@@ -172,6 +210,7 @@ function NewEngineManager(hub, options = null) {
 			session.lifecycleState = "ready";
 			session.uciState = "idle";
 			session.engine.send_ucinewgame();
+			this.dispatch_analysis(session);
 		}
 	};
 
@@ -202,6 +241,7 @@ function NewEngineManager(hub, options = null) {
 			searchState: "idle",
 			activeSearchId: null,
 			tabId: null,
+			analysisRequest: null,
 		};
 		this.sessions[session.sessionId] = session;
 		this.primary_session = session;
@@ -234,6 +274,7 @@ function NewEngineManager(hub, options = null) {
 			searchState: "idle",
 			activeSearchId: null,
 			tabId: null,
+			analysisRequest: null,
 		};
 		session.event_sink = this.make_event_sink(session);
 		session.engine = this.engine_factory(this.hub, {

@@ -223,3 +223,29 @@ test("EngineManager starts and stops analysis for all sessions on a tab", () => 
 	assert.deepEqual(harness.created[0].stopped, [null]);
 	assert.deepEqual(harness.created[1].stopped, [null]);
 });
+
+test("EngineManager dispatches pending analysis after readiness", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+	manager.assign_to_tab(secondaryId, 1);
+	let node = {id: "node-2"};
+
+	assert.equal(manager.start_analysis(1, node, {limit: 500}), true);
+	assert.deepEqual(harness.created[0].searchRequests, []);
+	assert.deepEqual(harness.created[1].searchRequests, []);
+
+	harness.created[0].ever_received_uciok = true;
+	harness.created[0].ever_received_readyok = true;
+	harness.created[1].ever_received_uciok = true;
+	harness.created[1].ever_received_readyok = true;
+	manager.receive_misc(primarySession, "readyok");
+	manager.secondary().event_sink.onReady(manager.secondary(), {processGeneration: 1});
+
+	assert.equal(harness.created[0].searchRequests.length, 1);
+	assert.equal(harness.created[1].searchRequests.length, 1);
+	assert.equal(harness.created[0].searchRequests[0][0], node);
+	assert.equal(harness.created[1].searchRequests[0][0], node);
+});
