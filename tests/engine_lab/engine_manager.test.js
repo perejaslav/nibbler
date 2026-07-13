@@ -58,7 +58,11 @@ function loadManager() {
 	};
 	vm.createContext(context);
 	vm.runInContext(`${source}\nthis.__NewEngineManager = NewEngineManager;`, context);
-	return {NewEngineManager: context.__NewEngineManager, created};
+	return {
+		NewEngineManager: context.__NewEngineManager,
+		created,
+		makeEngine: () => context.NewEngine({}, {role: "primary", ack_to_main: true}),
+	};
 }
 
 function makeHub() {
@@ -78,7 +82,7 @@ function makeHub() {
 test("EngineManager creates a primary and one secondary session", () => {
 	let harness = loadManager();
 	let manager = harness.NewEngineManager(makeHub());
-	let primaryEngine = harness.created[0];
+	let primaryEngine = harness.makeEngine();
 
 	manager.attach_primary(primaryEngine, "first");
 	let secondaryId = manager.create_session("second", "secondary");
@@ -94,7 +98,7 @@ test("EngineManager creates a primary and one secondary session", () => {
 test("EngineManager starts both sessions and handles secondary readiness locally", () => {
 	let harness = loadManager();
 	let manager = harness.NewEngineManager(makeHub());
-	manager.attach_primary(harness.created[0], "first");
+	manager.attach_primary(harness.makeEngine(), "first");
 	let secondaryId = manager.create_session("second", "secondary");
 	let primaryId = manager.primary_session_id();
 
@@ -114,7 +118,7 @@ test("EngineManager starts both sessions and handles secondary readiness locally
 test("stopping one session does not shut down the other", () => {
 	let harness = loadManager();
 	let manager = harness.NewEngineManager(makeHub());
-	manager.attach_primary(harness.created[0], "first");
+	manager.attach_primary(harness.makeEngine(), "first");
 	let secondaryId = manager.create_session("second", "secondary");
 	manager.start_session(secondaryId);
 
@@ -128,7 +132,7 @@ test("stopping one session does not shut down the other", () => {
 test("stop_all shuts down every session and clears the manager", async () => {
 	let harness = loadManager();
 	let manager = harness.NewEngineManager(makeHub());
-	manager.attach_primary(harness.created[0], "first");
+	manager.attach_primary(harness.makeEngine(), "first");
 	manager.create_session("second", "secondary");
 
 	await manager.stop_all();

@@ -1,0 +1,278 @@
+"use strict";
+
+function NewEngineManager(hub, options = null) {
+	let manager = Object.create(null);
+	let settings = options || {};
+
+	manager.hub = hub;
+	manager.sessions = Object.create(null);
+	manager.primary_session = null;
+	manager.secondary_session = null;
+	manager.next_session_id = 1;
+	manager.engine_factory = settings.engine_factory || ((owner, engine_options) => NewEngine(owner, engine_options));
+	manager.profile_loader = settings.profile_loader || (profile_key => engineconfig[profile_key] || null);
+
+	manager.primary = function() {
+		return this.primary_session ? this.primary_session.engine : null;
+	};
+
+	manager.secondary = function() {
+		return this.secondary_session ? this.secondary_session.engine : null;
+	};
+
+	manager.primary_session_id = function() {
+		return this.primary_session ? this.primary_session.sessionId : null;
+	};
+
+	manager.secondary_session_id = function() {
+		return this.secondary_session ? this.secondary_session.sessionId : null;
+	};
+
+	manager.get_session = function(session_id) {
+		return this.sessions[session_id] || null;
+	};
+
+	manager.list_sessions = function() {
+		return Object.values(this.sessions);
+	};
+
+	manager.profile = function(profile_key) {
+		let profile = this.profile_loader(profile_key);
+		if (!profile || typeof profile !== "object") {
+			throw new Error(`Unknown engine profile: ${profile_key}`);
+		}
+		return profile;
+	};
+
+	manager.make_event_sink = function(session) {
+		let manager_ref = this;
+		return {
+			find_tab_for_node(node) {
+				return manager_ref.hub && typeof manager_ref.hub.find_tab_for_node === "function" ?
+					manager_ref.hub.find_tab_for_node(node) : null;
+			},
+			active_tab() {
+				return manager_ref.hub && typeof manager_ref.hub.active_tab === "function" ?
+					manager_ref.hub.active_tab() : null;
+			},
+			with_tab(tab, callback) {
+				if (manager_ref.hub && typeof manager_ref.hub.with_tab === "function") {
+					return manager_ref.hub.with_tab(tab, callback);
+				}
+				return callback(tab);
+			},
+			info_handler: {
+				engine_cycle: 0,
+				engine_subcycle: 0,
+				receive() {},
+				err_receive(line) {
+					session.lastError = line;
+				},
+			},
+			receive_misc(line) {
+				manager_ref.receive_misc(session, line);
+			},
+			receive_bestmove(line, node) {
+				session.lastBestmove = {line, node};
+			},
+			err_receive(line) {
+				session.lastError = line;
+			},
+			on_error(engine, error) {
+				manager_ref.fail_session(session, error);
+			},
+		};
+	};
+
+	manager.receive_misc = function(session, line) {
+		if (typeof line !== "string") return;
+
+		if (line.startsWith("id name ")) {
+			session.name = line.slice("id name ".length).trim();
+			session.engine.name = session.name;
+			return;
+		}
+
+		if (line.startsWith("uciok")) {
+			session.uciState = "waiting_ready";
+			session.engine.send("isready");
+			return;
+		}
+
+		if (line.startsWith("readyok")) {
+			session.lifecycleState = "ready";
+			session.uciState = "idle";
+			session.engine.send_ucinewgame();
+		}
+	};
+
+	manager.fail_session = function(session, error) {
+		session.lifecycleState = "failed";
+		session.uciState = "idle";
+		session.lastError = error ? error.toString() : "Unknown engine error";
+	};
+
+	manager.attach_primary = function(engine, profile_key = "") {
+		if (!engine) throw new Error("Cannot attach an empty primary engine");
+		if (this.primary_session) this.remove_session(this.primary_session.sessionId);
+
+		let session = {
+			sessionId: "engine-session-" + this.next_session_id++,
+			role: "primary",
+			profileKey: profile_key || engine.filepath || "",
+			engine,
+			lifecycleState: engine.exe ? "starting" : "not_started",
+			uciState: "idle",
+			started: !!engine.exe,
+			name: engine.name || "",
+			lastError: null,
+			lastBestmove: null,
+		};
+		this.sessions[session.sessionId] = session;
+		this.primary_session = session;
+		return session;
+	};
+
+	manager.create_session = function(profile_key, role = "secondary") {
+		if (role !== "secondary") {
+			throw new Error("Only secondary sessions can be created directly");
+		}
+		if (this.secondary_session) {
+			throw new Error("EngineManager supports a maximum of two sessions");
+		}
+
+		let profile = this.profile(profile_key);
+		let session = {
+			sessionId: "engine-session-" + this.next_session_id++,
+			role,
+			profileKey: profile_key,
+			engine: null,
+			lifecycleState: "not_started",
+			uciState: "idle",
+			started: false,
+			name: "",
+			lastError: null,
+			lastBestmove: null,
+		};
+		session.event_sink = this.make_event_sink(session);
+		session.engine = this.engine_factory(this.hub, {
+			event_sink: session.event_sink,
+			role,
+			ack_to_main: false,
+		});
+		this.sessions[session.sessionId] = session;
+		this.secondary_session = session;
+		return session.sessionId;
+	};
+
+	manager.start_session = function(session_id) {
+		let session = this.get_session(session_id);
+		if (!session) throw new Error(`Unknown engine session: ${session_id}`);
+		if (session.lifecycleState === "ready") return true;
+
+		if (!session.started) {
+			let profile = this.profile(session.profileKey);
+			let args = Array.isArray(profile.args) ? profile.args.slice() : [];
+			if (!session.engine.setup(session.profileKey, args)) {
+				this.fail_session(session, "Engine failed to start");
+				return false;
+			}
+			session.started = true;
+		}
+
+		session.lifecycleState = "starting";
+		session.uciState = "waiting_ready";
+		session.engine.send("uci");
+		return true;
+	};
+
+	manager.stop_session = function(session_id) {
+		let session = this.get_session(session_id);
+		if (!session) return false;
+		if (session.engine && typeof session.engine.set_search_desired === "function") {
+			session.engine.set_search_desired(null);
+		}
+		session.uciState = "idle";
+		return true;
+	};
+
+	manager.restart_session = function(session_id) {
+		let old_session = this.get_session(session_id);
+		if (!old_session) throw new Error(`Unknown engine session: ${session_id}`);
+
+		let role = old_session.role;
+		let profile_key = old_session.profileKey;
+		let event_sink = role === "secondary" ? old_session.event_sink : this.hub;
+		if (old_session.engine && typeof old_session.engine.shutdown === "function") {
+			old_session.engine.shutdown();
+		}
+
+		old_session.engine = this.engine_factory(this.hub, {
+			event_sink,
+			role,
+			ack_to_main: role === "primary",
+		});
+		old_session.lifecycleState = "not_started";
+		old_session.uciState = "idle";
+		old_session.started = false;
+		old_session.lastError = null;
+		return this.start_session(session_id);
+	};
+
+	manager.start_comparison = function(first_profile_key, second_profile_key) {
+		if (!first_profile_key || !second_profile_key || first_profile_key === second_profile_key) {
+			throw new Error("Comparison requires two different engine profiles");
+		}
+		if (!this.primary_session) {
+			throw new Error("A primary engine must be attached before comparison starts");
+		}
+		if (this.primary_session.profileKey !== first_profile_key) {
+			throw new Error("The first comparison profile must match the primary engine");
+		}
+		if (this.secondary_session) this.stop_comparison();
+
+		let secondary_id = this.create_session(second_profile_key, "secondary");
+		if (!this.primary_session.started && !this.start_session(this.primary_session.sessionId)) return false;
+		if (!this.start_session(secondary_id)) return false;
+		return {
+			primarySessionId: this.primary_session.sessionId,
+			secondarySessionId: secondary_id,
+		};
+	};
+
+	manager.stop_comparison = function() {
+		if (!this.secondary_session) return false;
+		let session_id = this.secondary_session.sessionId;
+		this.stop_session(session_id);
+		if (this.secondary_session.engine && typeof this.secondary_session.engine.shutdown === "function") {
+			this.secondary_session.engine.shutdown();
+		}
+		this.remove_session(session_id);
+		return true;
+	};
+
+	manager.remove_session = function(session_id) {
+		let session = this.sessions[session_id];
+		if (!session) return false;
+		if (this.primary_session === session) this.primary_session = null;
+		if (this.secondary_session === session) this.secondary_session = null;
+		delete this.sessions[session_id];
+		return true;
+	};
+
+	manager.stop_all = function() {
+		let sessions = this.list_sessions();
+		for (let session of sessions) {
+			this.stop_session(session.sessionId);
+			if (session.engine && typeof session.engine.shutdown === "function") {
+				session.engine.shutdown();
+			}
+		}
+		this.sessions = Object.create(null);
+		this.primary_session = null;
+		this.secondary_session = null;
+		return Promise.resolve();
+	};
+
+	return manager;
+}
