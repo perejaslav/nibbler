@@ -5,6 +5,7 @@ const test = require("node:test");
 
 const {
 	createMultiPVStore,
+	createConsensus,
 	normalizeScore,
 	parseInfoLine,
 } = require("../../files/src/modules/engine_lab");
@@ -109,4 +110,25 @@ test("MultiPV store rejects stale search results and clears on a new search", ()
 	store.beginSearch("search-2");
 	assert.deepEqual(store.results(), []);
 	assert.equal(store.update({searchId: "search-1", multipv: 1, depth: 99}), false);
+});
+
+test("createConsensus combines candidate moves and reports agreement", () => {
+	const result = createConsensus({
+		stockfish: [
+			{multipv: 1, pv: ["e2e4"], score: {type: "cp", value: 34}},
+			{multipv: 2, pv: ["d2d4"], score: {type: "cp", value: 12}},
+		],
+		lc0: [
+			{multipv: 1, pv: ["e2e4"], wdl: {win: 520, draw: 460, loss: 20}},
+			{multipv: 2, pv: ["c2c4"], wdl: {win: 500, draw: 450, loss: 50}},
+		],
+	});
+
+	assert.equal(result.candidates[0].move, "e2e4");
+	assert.equal(result.candidates[0].support, 2);
+	assert.equal(result.candidates[0].ranks.stockfish, 1);
+	assert.equal(result.candidates[0].ranks.lc0, 1);
+	assert.equal(result.bestMove, "e2e4");
+	assert.equal(result.agreement.level, "high");
+	assert.ok(result.candidates[0].averageQ > 0);
 });
