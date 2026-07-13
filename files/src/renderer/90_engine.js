@@ -71,11 +71,14 @@ function SearchParams(node = null, limit = null, limit_by_time = false, searchmo
 	});
 }
 
-function NewEngine(hub) {
+function NewEngine(hub, options = null) {
 
 	let eng = Object.create(null);
 
 	eng.hub = hub;
+	eng.event_sink = options && options.event_sink ? options.event_sink : hub;
+	eng.role = options && options.role ? options.role : "primary";
+	eng.ack_to_main = !(options && options.ack_to_main === false);
 	eng.exe = null;
 	eng.scanner = null;
 	eng.err_scanner = null;
@@ -218,11 +221,11 @@ function NewEngine(hub) {
 		this.send(s);
 		this.search_running = this.search_desired;
 		this.suppress_cycle_info = null;
-		let tab = this.hub.find_tab_for_node(this.search_running.node) || this.hub.active_tab();
+		let tab = this.event_sink.find_tab_for_node(this.search_running.node) || this.event_sink.active_tab();
 		if (tab) {
-			this.hub.with_tab(tab, () => {
-				this.hub.info_handler.engine_cycle++;
-				this.hub.info_handler.engine_subcycle++;
+			this.event_sink.with_tab(tab, () => {
+				this.event_sink.info_handler.engine_cycle++;
+				this.event_sink.info_handler.engine_subcycle++;
 			});
 		}
 	};
@@ -304,10 +307,10 @@ function NewEngine(hub) {
 			if (report_bestmove) {
 				Log("< " + line);
 				this.send_queued_setoptions();									// After logging the incoming.
-				let tab = this.hub.find_tab_for_node(this.search_completed.node) || this.hub.active_tab();
+				let tab = this.event_sink.find_tab_for_node(this.search_completed.node) || this.event_sink.active_tab();
 				if (tab) {
-					this.hub.with_tab(tab, () => {
-						this.hub.receive_bestmove(line, this.search_completed.node);	// May trigger a new search, so do it last.
+					this.event_sink.with_tab(tab, () => {
+						this.event_sink.receive_bestmove(line, this.search_completed.node);	// May trigger a new search, so do it last.
 					});
 				}
 			} else {
@@ -325,10 +328,10 @@ function NewEngine(hub) {
 
 		if (line.startsWith("info string ERROR")) {								// Stockfish sends these.
 			Log("< " + line);
-			let tab = this.hub.find_tab_for_node(this.search_running.node) || this.hub.active_tab();
+			let tab = this.event_sink.find_tab_for_node(this.search_running.node) || this.event_sink.active_tab();
 			if (tab) {
-				this.hub.with_tab(tab, () => {
-					this.hub.info_handler.err_receive(line.slice(12));
+				this.event_sink.with_tab(tab, () => {
+					this.event_sink.info_handler.err_receive(line.slice(12));
 				});
 			}
 			return;
@@ -355,15 +358,15 @@ function NewEngine(hub) {
 		// Hub can set a cycle to be suppressed (e.g. for the sake of making "forget all analysis" work).
 		// This feels a bit sketchy, but will be OK as long as the next "go" is guaranteed to increment the cycle number.
 
-		if (this.suppress_cycle_info === this.hub.info_handler.engine_cycle) {
+		if (this.suppress_cycle_info === this.event_sink.info_handler.engine_cycle) {
 			if (config.log_info_lines) Log("(ignore suppressed) < " + line);
 			return;
 		}
 
-		let tab = this.hub.find_tab_for_node(this.search_running.node) || this.hub.active_tab();
+		let tab = this.event_sink.find_tab_for_node(this.search_running.node) || this.event_sink.active_tab();
 		if (tab) {
-			this.hub.with_tab(tab, () => {
-				this.hub.info_handler.receive(this, this.search_running, line);		// Responsible for logging lines that get this far.
+			this.event_sink.with_tab(tab, () => {
+				this.event_sink.info_handler.receive(this, this.search_running, line);		// Responsible for logging lines that get this far.
 			});
 		}
 	};
@@ -384,7 +387,9 @@ function NewEngine(hub) {
 		let key = name.toLowerCase();																// Keys are always stored in lowercase.
 		let val = typeof this.sent_options[key] === "string" ? this.sent_options[key] : "";			// Values are strings, if present
 		let o = {key, val};
-		ipcRenderer.send("ack_setoption", o);
+		if (this.ack_to_main) {
+			ipcRenderer.send("ack_setoption", o);
+		}
 		return o;
 	};
 
@@ -405,7 +410,9 @@ function NewEngine(hub) {
 	};
 
 	eng.send_ack_engine = function() {
-		ipcRenderer.send("ack_engine", this.filepath);
+		if (this.ack_to_main) {
+			ipcRenderer.send("ack_engine", this.filepath);
+		}
 	};
 
 	eng.setup = function(filepath, args) {		// Returns true on success, false otherwise.
@@ -442,7 +449,11 @@ function NewEngine(hub) {
 		}
 
 		this.exe.once("error", (err) => {
-			alert(err);
+			if (this.event_sink && typeof this.event_sink.on_error === "function") {
+				this.event_sink.on_error(this, err);
+			} else {
+				alert(err);
+			}
 		});
 
 		this.scanner = readline.createInterface({
@@ -460,7 +471,7 @@ function NewEngine(hub) {
 		this.err_scanner.on("line", (line) => {
 			if (this.have_quit) return;
 			Log(". " + line);
-			this.hub.err_receive(SafeStringHTML(line));
+			this.event_sink.err_receive(SafeStringHTML(line));
 		});
 
 		this.scanner.on("line", (line) => {
@@ -492,7 +503,7 @@ function NewEngine(hub) {
 				if (line.startsWith("readyok")) {
 					this.ever_received_readyok = true;
 				}
-				this.hub.receive_misc(SafeStringHTML(line));
+				this.event_sink.receive_misc(SafeStringHTML(line));
 			}
 
 		});

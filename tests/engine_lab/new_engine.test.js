@@ -134,8 +134,8 @@ test("two NewEngine instances keep process state and UCI events isolated", () =>
 
 	harness.scanners[0].emit("line", "id name First Engine");
 	harness.scanners[0].emit("line", "option name Threads type spin default 1 min 1 max 8");
-	harness.scanners[1].emit("line", "id name Second Engine");
-	harness.scanners[1].emit("line", "option name Hash type spin default 16 min 1 max 1024");
+	harness.scanners[2].emit("line", "id name Second Engine");
+	harness.scanners[2].emit("line", "option name Hash type spin default 16 min 1 max 1024");
 
 	assert.deepEqual(firstRoute.misc, [
 		"id name First Engine",
