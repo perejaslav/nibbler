@@ -276,3 +276,23 @@ test("EngineManager keeps MultiPV results isolated per session", () => {
 	assert.equal(results[primary.sessionId][0].pv[0], "e2e4");
 	assert.equal(results[secondary.sessionId][0].pv[0], "c4");
 });
+
+test("EngineManager exposes consensus for a tab", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+	manager.assign_to_tab(secondaryId, 1);
+	let primary = manager.get_session(primarySession.sessionId);
+	let secondary = manager.get_session(secondaryId);
+	primary.event_sink = manager.make_event_sink(primary);
+	for (let session of [primary, secondary]) {
+		session.event_sink.onStateChanged(session.engine, {processGeneration: 1, searchState: "searching", searchId: 1});
+		session.event_sink.onInfo(session.engine, {processGeneration: 1, searchId: 1, multipv: 1, pv: ["e2e4"], score: {type: "cp", value: 20}});
+	}
+
+	let consensus = manager.get_consensus(1);
+	assert.equal(consensus.bestMove, "e2e4");
+	assert.equal(consensus.agreement.support, 2);
+});
