@@ -249,3 +249,26 @@ test("EngineManager dispatches pending analysis after readiness", () => {
 	assert.equal(harness.created[0].searchRequests[0][0], node);
 	assert.equal(harness.created[1].searchRequests[0][0], node);
 });
+
+test("EngineManager keeps MultiPV results isolated per session", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+	manager.assign_to_tab(secondaryId, 1);
+	let primary = manager.get_session(primarySession.sessionId);
+	let secondary = manager.get_session(secondaryId);
+	primary.event_sink = manager.make_event_sink(primary);
+
+	primary.event_sink.onStateChanged(primary.engine, {processGeneration: 1, searchState: "searching", searchId: 10});
+	secondary.event_sink.onStateChanged(secondary.engine, {processGeneration: 1, searchState: "searching", searchId: 20});
+	primary.event_sink.onInfo(primary.engine, {processGeneration: 1, searchId: 10, multipv: 1, depth: 12, pv: ["e2e4"]});
+	primary.event_sink.onInfo(primary.engine, {processGeneration: 1, searchId: 9, multipv: 1, depth: 99, pv: ["d4"]});
+	secondary.event_sink.onInfo(secondary.engine, {processGeneration: 1, searchId: 20, multipv: 1, depth: 8, pv: ["c4"]});
+
+	let results = manager.get_results(1);
+	assert.equal(results[primary.sessionId][0].depth, 12);
+	assert.equal(results[primary.sessionId][0].pv[0], "e2e4");
+	assert.equal(results[secondary.sessionId][0].pv[0], "c4");
+});
