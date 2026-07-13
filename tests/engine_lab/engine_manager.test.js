@@ -143,3 +143,25 @@ test("stop_all shuts down every session and clears the manager", async () => {
 	assert.equal(manager.primary(), null);
 	assert.equal(manager.secondary(), null);
 });
+
+test("EngineManager stores normalized secondary session events", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	let secondary = manager.secondary();
+
+	secondary.event_sink.onReady(secondary, {processGeneration: 2, name: "Second"});
+	secondary.event_sink.onStateChanged(secondary, {processGeneration: 2, searchState: "searching", searchId: 4});
+	secondary.event_sink.onInfo(secondary, {processGeneration: 2, searchId: 4, depth: 10, pv: ["e2e4"]});
+	secondary.event_sink.onBestmove(secondary, {processGeneration: 2, searchId: 4, move: "e2e4"});
+
+	let session = manager.get_session(secondaryId);
+	assert.equal(session.lifecycleState, "ready");
+	assert.equal(session.processGeneration, 2);
+	assert.equal(session.name, "Second");
+	assert.equal(session.searchState, "searching");
+	assert.equal(session.activeSearchId, 4);
+	assert.equal(session.lastInfo.depth, 10);
+	assert.equal(session.lastBestmove.move, "e2e4");
+});
