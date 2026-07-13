@@ -29,7 +29,8 @@ function loadManager() {
 				exe: null,
 				setupCalls: [],
 				sent: [],
-				stopped: [],
+		stopped: [],
+		searchRequests: [],
 				shutdownCalls: 0,
 				ever_received_uciok: false,
 				ever_received_readyok: false,
@@ -41,8 +42,9 @@ function loadManager() {
 				send(line) {
 					this.sent.push(line);
 				},
-				set_search_desired(value) {
-					this.stopped.push(value);
+				set_search_desired(...args) {
+					this.searchRequests.push(args);
+					if (args.length === 1) this.stopped.push(args[0]);
 				},
 				send_ucinewgame() {
 					this.sent.push("ucinewgame");
@@ -198,4 +200,26 @@ test("removing a session clears its tab membership", () => {
 	assert.deepEqual(tab.engine_session_ids, [session.sessionId]);
 	manager.remove_session(session.sessionId);
 	assert.deepEqual(tab.engine_session_ids, []);
+});
+
+test("EngineManager starts and stops analysis for all sessions on a tab", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+	manager.assign_to_tab(secondaryId, 1);
+	let node = {id: "node-1"};
+	let limits = {limit: 1000, limit_by_time: true, searchmoves: ["e2e4"]};
+	manager.primary().ever_received_uciok = true;
+	manager.primary().ever_received_readyok = true;
+	manager.secondary().ever_received_uciok = true;
+	manager.secondary().ever_received_readyok = true;
+
+	assert.equal(manager.start_analysis(1, node, limits), true);
+	assert.deepEqual(harness.created[0].searchRequests, [[node, 1000, true, ["e2e4"]]]);
+	assert.deepEqual(harness.created[1].searchRequests, [[node, 1000, true, ["e2e4"]]]);
+	assert.equal(manager.stop_analysis(1), true);
+	assert.deepEqual(harness.created[0].stopped, [null]);
+	assert.deepEqual(harness.created[1].stopped, [null]);
 });
