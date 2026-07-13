@@ -165,3 +165,23 @@ test("EngineManager stores normalized secondary session events", () => {
 	assert.equal(session.lastInfo.depth, 10);
 	assert.equal(session.lastBestmove.move, "e2e4");
 });
+
+test("EngineManager assigns sessions to tabs independently", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+
+	assert.equal(manager.assign_to_tab(primarySession.sessionId, 1), true);
+	assert.equal(manager.assign_to_tab(secondaryId, 1), true);
+	assert.deepEqual(manager.sessions_for_tab(1).map(session => session.sessionId), [
+		primarySession.sessionId,
+		secondaryId,
+	]);
+
+	assert.equal(manager.assign_to_tab(secondaryId, 2), true);
+	assert.deepEqual(manager.sessions_for_tab(1).map(session => session.sessionId), [primarySession.sessionId]);
+	assert.deepEqual(manager.sessions_for_tab(2).map(session => session.sessionId), [secondaryId]);
+	assert.equal(manager.unassign_from_tab(primarySession.sessionId), true);
+	assert.equal(manager.sessions_for_tab(1).length, 0);
+});
