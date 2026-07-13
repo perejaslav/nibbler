@@ -46,10 +46,11 @@ let NoSearch = Object.freeze({
 	node: null,
 	limit: null,
 	limit_by_time: false,
-	searchmoves: Object.freeze([])
+	searchmoves: Object.freeze([]),
+	searchId: null,
 });
 
-function SearchParams(node = null, limit = null, limit_by_time = false, searchmoves = null) {
+function SearchParams(node = null, limit = null, limit_by_time = false, searchmoves = null, searchId = null) {
 
 	if (!node) return NoSearch;
 
@@ -67,7 +68,8 @@ function SearchParams(node = null, limit = null, limit_by_time = false, searchmo
 		node: node,
 		limit: limit,
 		limit_by_time: limit_by_time,
-		searchmoves: validated
+		searchmoves: validated,
+		searchId: searchId,
 	});
 }
 
@@ -100,6 +102,10 @@ function NewEngine(hub, options = null) {
 
 	eng.warn_send_fail = true;
 	eng.leelaish = false;				// Most likely set by hub upon an "id name" line, though can also be set by info_handler.
+	eng.process_generation = 0;
+	eng.next_search_id = 1;
+	eng.active_search_id = null;
+	eng.search_state = "idle";
 
 	eng.search_running = NoSearch;		// The search actually being run right now.
 	eng.search_desired = NoSearch;		// The search we want Leela to be running. Often the same object as above.
@@ -172,6 +178,8 @@ function NewEngine(hub, options = null) {
 		if (!node || node.destroyed || node.terminal_reason()) {
 			this.search_running = NoSearch;
 			this.search_desired = NoSearch;
+			this.active_search_id = null;
+			this.search_state = "idle";
 			return;
 		}
 
@@ -220,6 +228,8 @@ function NewEngine(hub, options = null) {
 
 		this.send(s);
 		this.search_running = this.search_desired;
+		this.active_search_id = this.search_running.searchId;
+		this.search_state = "searching";
 		this.suppress_cycle_info = null;
 		let tab = this.event_sink.find_tab_for_node(this.search_running.node) || this.event_sink.active_tab();
 		if (tab) {
@@ -237,7 +247,8 @@ function NewEngine(hub, options = null) {
 			return;
 		}
 
-		let params = SearchParams(node, limit, limit_by_time, searchmoves);
+		let search_id = node ? this.next_search_id++ : null;
+		let params = SearchParams(node, limit, limit_by_time, searchmoves, search_id);
 
 		// It is correct to check these against the *desired* search
 		// (which may or may not be the one currently running).
@@ -259,12 +270,15 @@ function NewEngine(hub, options = null) {
 
 		if (this.search_running.node) {
 			this.send("stop");
+			this.search_state = "stopping";
 			if (!this.unresolved_stop_time) {
 				this.unresolved_stop_time = performance.now();
 			}
 		} else {
 			if (this.search_desired.node) {
 				this.send_desired();
+			} else {
+				this.search_state = "idle";
 			}
 		}
 
@@ -289,6 +303,7 @@ function NewEngine(hub, options = null) {
 
 		this.search_completed = this.search_running;
 		this.search_running = NoSearch;
+		this.active_search_id = null;
 
 		this.unresolved_stop_time = null;
 
@@ -304,6 +319,7 @@ function NewEngine(hub, options = null) {
 
 		if (no_new_search) {
 			this.search_desired = NoSearch;
+			this.search_state = "idle";
 			if (report_bestmove) {
 				Log("< " + line);
 				this.send_queued_setoptions();									// After logging the incoming.
@@ -434,6 +450,14 @@ function NewEngine(hub, options = null) {
 			return false;
 		}
 
+		this.have_quit = false;
+		this.process_generation++;
+		let process_generation = this.process_generation;
+		this.search_running = NoSearch;
+		this.search_desired = NoSearch;
+		this.search_completed = NoSearch;
+		this.active_search_id = null;
+		this.search_state = "idle";
 		this.filepath = filepath;
 		this.send_ack_engine();			// After this.filepath is set.
 
@@ -469,12 +493,14 @@ function NewEngine(hub, options = null) {
 		});
 
 		this.err_scanner.on("line", (line) => {
+			if (process_generation !== this.process_generation) return;
 			if (this.have_quit) return;
 			Log(". " + line);
 			this.event_sink.err_receive(SafeStringHTML(line));
 		});
 
 		this.scanner.on("line", (line) => {
+			if (process_generation !== this.process_generation) return;
 
 			if (this.have_quit) return;
 
