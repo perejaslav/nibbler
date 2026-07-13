@@ -73,7 +73,9 @@ function NewHub() {
 
 	let hub = Object.create(null);
 
+	hub.engine_manager = NewEngineManager(hub);
 	hub.engine = NewEngine(hub);						// Just a dummy object with no exe. Fixed by start.js later.
+	hub.engine_manager.attach_primary(hub.engine, "");
 
 	hub.tab_manager = NewTabManager(hub);
 	hub.tab_manager.new_tab();
@@ -1923,6 +1925,7 @@ let hub_props = {
 
 		this.engine.shutdown();
 		this.engine = new_engine;					// Don't reuse engine objects, not even the dummy object. There are sync issues due to fake "go"s.
+		this.engine_manager.attach_primary(new_engine, filepath);
 		this.draw_enginebox();
 
 		if (!engineconfig[this.engine.filepath]) {
@@ -3271,7 +3274,7 @@ let hub_props = {
 	// Misc...
 
 	quit: function() {
-		this.engine.shutdown();
+		this.engine_manager.stop_all();
 		this.save_config();
 		this.save_engineconfig();
 		ipcRenderer.send("terminate");
