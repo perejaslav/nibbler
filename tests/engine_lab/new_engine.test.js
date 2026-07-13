@@ -84,6 +84,11 @@ function loadNewEngine() {
 		ipcRenderer: {
 			send: (...args) => ipcMessages.push(args),
 		},
+		config: {
+			searchmoves_buttons: false,
+			log_positions: false,
+			log_info_lines: false,
+		},
 	};
 	vm.createContext(context);
 	let source = fs.readFileSync(path.join(__dirname, "../../files/src/renderer/90_engine.js"), "utf8");
@@ -120,6 +125,33 @@ function makeRoute() {
 	};
 }
 
+function makeNode(id) {
+	return {
+		id,
+		destroyed: false,
+		terminal_reason() {
+			return null;
+		},
+		validate_searchmoves(moves) {
+			return Array.isArray(moves) ? moves.slice() : [];
+		},
+		get_root() {
+			return this;
+		},
+		board: {
+			fen() {
+				return `fen-${id}`;
+			},
+		},
+		history_old_format() {
+			return [];
+		},
+		history() {
+			return [];
+		},
+	};
+}
+
 test("two NewEngine instances keep process state and UCI events isolated", () => {
 	let harness = loadNewEngine();
 	let firstRoute = makeRoute();
@@ -150,4 +182,49 @@ test("two NewEngine instances keep process state and UCI events isolated", () =>
 	assert.equal(second.known("Hash"), true);
 	assert.equal(second.known("Threads"), false);
 	assert.deepEqual(harness.ipcMessages, []);
+});
+
+test("NewEngine assigns search ids and waits for bestmove before replacing a search", () => {
+	let harness = loadNewEngine();
+	let route = makeRoute();
+	let engine = harness.NewEngine({}, {event_sink: route, ack_to_main: false});
+	engine.setup("C:\\engines\\first.exe", []);
+	let stdout = harness.scanners[0];
+	stdout.emit("line", "uciok");
+	stdout.emit("line", "readyok");
+
+	let firstNode = makeNode("first");
+	let secondNode = makeNode("second");
+	engine.set_search_desired(firstNode, 100, false, []);
+
+	assert.equal(engine.search_running.searchId, 1);
+	assert.equal(engine.search_state, "searching");
+	assert.equal(engine.process_generation, 1);
+
+	engine.set_search_desired(secondNode, 200, false, []);
+
+	assert.equal(engine.search_running.searchId, 1);
+	assert.equal(engine.search_desired.searchId, 2);
+	assert.equal(engine.search_state, "stopping");
+
+	stdout.emit("line", "bestmove e2e4");
+
+	assert.equal(engine.search_running.searchId, 2);
+	assert.equal(engine.search_state, "searching");
+});
+
+test("NewEngine ignores output from an older process generation", () => {
+	let harness = loadNewEngine();
+	let route = makeRoute();
+	let engine = harness.NewEngine({}, {event_sink: route, ack_to_main: false});
+	engine.setup("C:\\engines\\first.exe", []);
+	let oldStdout = harness.scanners[0];
+	engine.setup("C:\\engines\\second.exe", []);
+	let currentStdout = harness.scanners[2];
+
+	oldStdout.emit("line", "id name Old Process");
+	currentStdout.emit("line", "id name Current Process");
+
+	assert.equal(engine.process_generation, 2);
+	assert.deepEqual(route.misc, ["id name Current Process"]);
 });
