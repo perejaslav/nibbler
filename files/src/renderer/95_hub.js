@@ -136,6 +136,30 @@ function NewHub() {
 
 let hub_props = {
 
+	onReady: function(engine, event) {
+		this.engine_manager.handle_event("onReady", engine, event);
+	},
+
+	onInfo: function(engine, event) {
+		this.engine_manager.handle_event("onInfo", engine, event);
+	},
+
+	onBestmove: function(engine, event) {
+		this.engine_manager.handle_event("onBestmove", engine, event);
+	},
+
+	onError: function(engine, event) {
+		this.engine_manager.handle_event("onError", engine, event);
+	},
+
+	onExit: function(engine, event) {
+		this.engine_manager.handle_event("onExit", engine, event);
+	},
+
+	onStateChanged: function(engine, event) {
+		this.engine_manager.handle_event("onStateChanged", engine, event);
+	},
+
 	// ---------------------------------------------------------------------------------------------------------------------
 	// Core methods wrt our main state...
 

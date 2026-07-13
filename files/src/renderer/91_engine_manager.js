@@ -1,5 +1,7 @@
 "use strict";
 
+const engine_lab = require("../modules/engine_lab");
+
 function NewEngineManager(hub, options = null) {
 	let manager = Object.create(null);
 	let settings = options || {};
@@ -77,6 +79,19 @@ function NewEngineManager(hub, options = null) {
 		return this.list_sessions().filter(session => session.tabId === tab_id);
 	};
 
+	manager.session_for_engine = function(engine) {
+		return this.list_sessions().find(session => session.engine === engine) || null;
+	};
+
+	manager.handle_event = function(name, engine, event) {
+		let session = this.session_for_engine(engine);
+		if (!session) return false;
+		let sink = this.make_event_sink(session);
+		if (typeof sink[name] !== "function") return false;
+		sink[name](engine, event);
+		return true;
+	};
+
 	manager.dispatch_analysis = function(session) {
 		if (!session.analysisRequest || !session.engine ||
 			!session.engine.ever_received_uciok || !session.engine.ever_received_readyok) return false;
@@ -114,6 +129,14 @@ function NewEngineManager(hub, options = null) {
 		return true;
 	};
 
+	manager.get_results = function(tab_id) {
+		let results = Object.create(null);
+		for (let session of this.sessions_for_tab(tab_id)) {
+			results[session.sessionId] = session.resultsStore.results();
+		}
+		return results;
+	};
+
 	manager.profile = function(profile_key) {
 		let profile = this.profile_loader(profile_key);
 		if (!profile || typeof profile !== "object") {
@@ -135,6 +158,11 @@ function NewEngineManager(hub, options = null) {
 			onInfo(engine, event) {
 				session.processGeneration = event.processGeneration;
 				session.lastInfo = event;
+				session.resultsStore.update(Object.assign({
+					sessionId: session.sessionId,
+					engineName: session.name || "",
+					nodeId: event.node && event.node.id ? event.node.id : null,
+				}, event));
 			},
 			onBestmove(engine, event) {
 				session.processGeneration = event.processGeneration;
@@ -153,6 +181,9 @@ function NewEngineManager(hub, options = null) {
 				session.processGeneration = event.processGeneration;
 				session.searchState = event.searchState;
 				session.activeSearchId = event.searchId;
+				if (event.searchState === "searching" && event.searchId !== null) {
+					session.resultsStore.beginSearch(event.searchId);
+				}
 			},
 			find_tab_for_node(node) {
 				return manager_ref.hub && typeof manager_ref.hub.find_tab_for_node === "function" ?
@@ -242,6 +273,7 @@ function NewEngineManager(hub, options = null) {
 			activeSearchId: null,
 			tabId: null,
 			analysisRequest: null,
+			resultsStore: engine_lab.createMultiPVStore(),
 		};
 		this.sessions[session.sessionId] = session;
 		this.primary_session = session;
@@ -275,6 +307,7 @@ function NewEngineManager(hub, options = null) {
 			activeSearchId: null,
 			tabId: null,
 			analysisRequest: null,
+			resultsStore: engine_lab.createMultiPVStore(),
 		};
 		session.event_sink = this.make_event_sink(session);
 		session.engine = this.engine_factory(this.hub, {
