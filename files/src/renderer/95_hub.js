@@ -78,7 +78,8 @@ function NewHub() {
 	hub.engine_manager.attach_primary(hub.engine, "");
 
 	hub.tab_manager = NewTabManager(hub);
-	hub.tab_manager.new_tab();
+	let initial_tab = hub.tab_manager.new_tab();
+	hub.engine_manager.assign_to_tab(hub.engine_manager.primary_session_id(), initial_tab.id);
 	hub._context_tab = null;
 	hub.current_tab = function() {
 		return hub._context_tab || hub.tab_manager.active();
@@ -504,6 +505,7 @@ let hub_props = {
 		this.draw();
 
 		if (closing) {
+			this.engine_manager.unassign_tab(closing.old_id);
 			this.tab_manager.close_tab(closing.old_id);
 			this.draw_tabs();
 		}

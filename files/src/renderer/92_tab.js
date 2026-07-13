@@ -4,6 +4,11 @@ function NewTab(id, hub) {
 	let tree = NewTreeHandler();
 	return {
 		id: id,
+		engine_session_ids: [],
+		engine_group_id: null,
+		background_analysis_enabled: false,
+		comparison_mode: false,
+		consensus_settings: null,
 		title: "New game",
 		tree: tree,
 		flip: false,

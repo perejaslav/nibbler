@@ -36,6 +36,47 @@ function NewEngineManager(hub, options = null) {
 		return Object.values(this.sessions);
 	};
 
+	manager.assign_to_tab = function(session_id, tab_id) {
+		let session = this.get_session(session_id);
+		if (!session || tab_id === null || tab_id === undefined) return false;
+		let tab = this.hub.tab_manager ? this.hub.tab_manager.find(tab_id) : null;
+		if (this.hub.tab_manager && !tab) return false;
+		if (session.tabId !== null && this.hub.tab_manager) {
+			let previous_tab = this.hub.tab_manager.find(session.tabId);
+			if (previous_tab) previous_tab.engine_session_ids = previous_tab.engine_session_ids.filter(id => id !== session_id);
+		}
+		session.tabId = tab_id;
+		if (tab) {
+			if (!tab.engine_session_ids.includes(session_id)) tab.engine_session_ids.push(session_id);
+		}
+		return true;
+	};
+
+	manager.unassign_from_tab = function(session_id) {
+		let session = this.get_session(session_id);
+		if (!session) return false;
+		if (session.tabId !== null && this.hub.tab_manager) {
+			let tab = this.hub.tab_manager.find(session.tabId);
+			if (tab) tab.engine_session_ids = tab.engine_session_ids.filter(id => id !== session_id);
+		}
+		session.tabId = null;
+		return true;
+	};
+
+	manager.unassign_tab = function(tab_id) {
+		for (let session of this.list_sessions()) {
+			if (session.tabId === tab_id) session.tabId = null;
+		}
+		if (this.hub.tab_manager) {
+			let tab = this.hub.tab_manager.find(tab_id);
+			if (tab) tab.engine_session_ids = [];
+		}
+	};
+
+	manager.sessions_for_tab = function(tab_id) {
+		return this.list_sessions().filter(session => session.tabId === tab_id);
+	};
+
 	manager.profile = function(profile_key) {
 		let profile = this.profile_loader(profile_key);
 		if (!profile || typeof profile !== "object") {
@@ -160,6 +201,7 @@ function NewEngineManager(hub, options = null) {
 			processGeneration: 0,
 			searchState: "idle",
 			activeSearchId: null,
+			tabId: null,
 		};
 		this.sessions[session.sessionId] = session;
 		this.primary_session = session;
@@ -191,6 +233,7 @@ function NewEngineManager(hub, options = null) {
 			processGeneration: 0,
 			searchState: "idle",
 			activeSearchId: null,
+			tabId: null,
 		};
 		session.event_sink = this.make_event_sink(session);
 		session.engine = this.engine_factory(this.hub, {
@@ -292,6 +335,7 @@ function NewEngineManager(hub, options = null) {
 	manager.remove_session = function(session_id) {
 		let session = this.sessions[session_id];
 		if (!session) return false;
+		this.unassign_from_tab(session_id);
 		if (this.primary_session === session) this.primary_session = null;
 		if (this.secondary_session === session) this.secondary_session = null;
 		delete this.sessions[session_id];

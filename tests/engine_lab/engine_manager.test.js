@@ -185,3 +185,17 @@ test("EngineManager assigns sessions to tabs independently", () => {
 	assert.equal(manager.unassign_from_tab(primarySession.sessionId), true);
 	assert.equal(manager.sessions_for_tab(1).length, 0);
 });
+
+test("removing a session clears its tab membership", () => {
+	let harness = loadManager();
+	let tab = {id: 1, engine_session_ids: []};
+	let hub = makeHub();
+	hub.tab_manager = {find: id => id === tab.id ? tab : null};
+	let manager = harness.NewEngineManager(hub);
+	let session = manager.attach_primary(harness.makeEngine(), "first");
+
+	manager.assign_to_tab(session.sessionId, tab.id);
+	assert.deepEqual(tab.engine_session_ids, [session.sessionId]);
+	manager.remove_session(session.sessionId);
+	assert.deepEqual(tab.engine_session_ids, []);
+});
