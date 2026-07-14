@@ -178,6 +178,10 @@ statusbox.addEventListener("mousedown", (event) => {
 	hub.statusbox_click(event);
 });
 
+enginebox.addEventListener("mousedown", (event) => {
+	hub.engine_lab_click(event);
+});
+
 analysistoolbar.addEventListener("mousedown", (event) => {
 	hub.toolbar_click(event);
 });

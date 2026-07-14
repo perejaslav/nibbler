@@ -399,6 +399,15 @@ function NewEngineManager(hub, options = null) {
 		};
 	};
 
+	manager.start_comparison_for_tab = function(tab_id, first_profile_key, second_profile_key) {
+		if (this.hub.tab_manager && !this.hub.tab_manager.find(tab_id)) return false;
+		let result = this.start_comparison(first_profile_key, second_profile_key);
+		if (!result) return false;
+		this.assign_to_tab(result.primarySessionId, tab_id);
+		this.assign_to_tab(result.secondarySessionId, tab_id);
+		return result;
+	};
+
 	manager.stop_comparison = function() {
 		if (!this.secondary_session) return false;
 		let session_id = this.secondary_session.sessionId;

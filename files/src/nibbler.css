@@ -118,6 +118,13 @@ body {
 	margin-bottom: 0.35em;
 }
 
+.engine-lab-controls {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4em;
+	margin-bottom: 0.5em;
+}
+
 .engine-lab-cards {
 	display: flex;
 	flex-wrap: wrap;

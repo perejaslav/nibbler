@@ -1425,6 +1425,18 @@ let hub_props = {
 		if (this.engine_lab_view) this.engine_lab_view.draw();
 	},
 
+	engine_lab_click: function(event) {
+		let action = event.target.closest("[data-engine-lab-action]");
+		if (!action) return;
+		if (action.dataset.engineLabAction === "start") {
+			let profile = document.getElementById("engine_lab_secondary_profile").value;
+			if (profile) this.engine_manager.start_comparison_for_tab(this.active_tab().id, this.engine.filepath, profile);
+		} else if (action.dataset.engineLabAction === "stop") {
+			this.engine_manager.stop_comparison();
+		}
+		this.draw_enginebox();
+	},
+
 	toggle_comparison_mode: function() {
 		this.comparison_mode = !this.comparison_mode;
 		this.active_tab().comparison_mode = this.comparison_mode;

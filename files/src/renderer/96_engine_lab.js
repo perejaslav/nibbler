@@ -29,6 +29,17 @@ function NewEngineLabView(hub) {
 		</section>`;
 	}
 
+	function profile_controls() {
+		let current = hub.engine.filepath;
+		let profiles = Object.keys(engineconfig || {}).filter(profile => profile !== current);
+		let options = profiles.map(profile => `<option value="${safe(profile)}">${safe(profile)}</option>`).join("");
+		return `<div class="engine-lab-controls">
+			<select id="engine_lab_secondary_profile">${options}</select>
+			<button data-engine-lab-action="start" ${options ? "" : "disabled"}>Start comparison</button>
+			<button data-engine-lab-action="stop">Stop comparison</button>
+		</div>`;
+	}
+
 	view.draw = function() {
 		let tab = hub.active_tab();
 		if (!tab || !tab.comparison_mode) return;
@@ -39,6 +50,7 @@ function NewEngineLabView(hub) {
 		).join("");
 		enginebox.innerHTML = `<div class="engine-lab-panel">
 			<div class="engine-lab-heading">Engine comparison</div>
+			${profile_controls()}
 			<div class="engine-lab-cards">${sessions.map(session_card).join("")}</div>
 			<div class="engine-lab-consensus">Consensus: ${safe(consensus.agreement.level)} | Best move: ${safe(consensus.bestMove)} | Support: ${consensus.agreement.support}/${consensus.agreement.total}</div>
 			<div class="engine-lab-candidates">${candidate_rows}</div>
