@@ -17,9 +17,10 @@ function loadManager() {
 		Promise,
 		setTimeout,
 		clearTimeout,
-		require: modulePath => {
+			require: modulePath => {
 			if (modulePath === "../modules/engine_lab") return require("../../files/src/modules/engine_lab");
 			if (modulePath === "../modules/engine_resource_scheduler") return require("../../files/src/modules/engine_resource_scheduler");
+			if (modulePath === "../modules/engine_game_analysis") return require("../../files/src/modules/engine_game_analysis");
 			throw new Error(`Unexpected module: ${modulePath}`);
 		},
 		engineconfig: {

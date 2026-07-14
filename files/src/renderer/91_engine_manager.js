@@ -2,6 +2,7 @@
 
 const engine_lab = require("../modules/engine_lab");
 const engine_resource_scheduler = require("../modules/engine_resource_scheduler");
+const engine_game_analysis = require("../modules/engine_game_analysis");
 
 function NewEngineManager(hub, options = null) {
 	let manager = Object.create(null);
@@ -17,6 +18,7 @@ function NewEngineManager(hub, options = null) {
 	manager.resource_scheduler = settings.resource_scheduler || engine_resource_scheduler.createEngineResourceScheduler({
 		totalThreads: settings.total_threads,
 	});
+	manager.game_analysis_queues = Object.create(null);
 
 	manager.primary = function() {
 		return this.primary_session ? this.primary_session.engine : null;
@@ -133,6 +135,51 @@ function NewEngineManager(hub, options = null) {
 		return true;
 	};
 
+	manager.advance_game_analysis = function(tab_id) {
+		let job = this.game_analysis_queues[tab_id];
+		if (!job) return false;
+		let item = job.queue.next();
+		if (!item) return false;
+		job.activeSessionIds = new Set(this.sessions_for_tab(tab_id).map(session => session.sessionId));
+		this.start_analysis(tab_id, item.node, job.limits);
+		return true;
+	};
+
+	manager.start_game_analysis = function(tab_id, positions, limits = {}) {
+		if (!Array.isArray(positions) || positions.length === 0 || this.sessions_for_tab(tab_id).length === 0) return false;
+		this.game_analysis_queues[tab_id] = {
+			queue: engine_game_analysis.createGameAnalysisQueue(positions),
+			limits,
+			activeSessionIds: new Set(),
+		};
+		return this.advance_game_analysis(tab_id);
+	};
+
+	manager.handle_game_bestmove = function(session) {
+		let tab_id = session.tabId;
+		let job = this.game_analysis_queues[tab_id];
+		if (!job || !job.activeSessionIds.has(session.sessionId)) return;
+		job.activeSessionIds.delete(session.sessionId);
+		if (job.activeSessionIds.size > 0) return;
+		let item_results = {
+			bySession: this.get_results(tab_id),
+			consensus: this.get_consensus(tab_id),
+		};
+		job.queue.complete(item_results);
+		this.advance_game_analysis(tab_id);
+	};
+
+	manager.game_analysis_status = function(tab_id) {
+		let job = this.game_analysis_queues[tab_id];
+		if (!job) return {done: true, pending: 0, results: [], failures: []};
+		return {
+			done: job.queue.done(),
+			pending: job.queue.pending(),
+			results: job.queue.results(),
+			failures: job.queue.failures(),
+		};
+	};
+
 	manager.get_results = function(tab_id) {
 		let results = Object.create(null);
 		for (let session of this.sessions_for_tab(tab_id)) {
@@ -183,6 +230,7 @@ function NewEngineManager(hub, options = null) {
 			onBestmove(engine, event) {
 				session.processGeneration = event.processGeneration;
 				session.lastBestmove = event;
+				manager_ref.handle_game_bestmove(session);
 			},
 			onError(engine, event) {
 				session.processGeneration = event.processGeneration;
