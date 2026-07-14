@@ -19,6 +19,7 @@ function loadManager() {
 		clearTimeout,
 		require: modulePath => {
 			if (modulePath === "../modules/engine_lab") return require("../../files/src/modules/engine_lab");
+			if (modulePath === "../modules/engine_resource_scheduler") return require("../../files/src/modules/engine_resource_scheduler");
 			throw new Error(`Unexpected module: ${modulePath}`);
 		},
 		engineconfig: {
@@ -312,4 +313,23 @@ test("EngineManager starts comparison and assigns both sessions to a tab", () =>
 		result.secondarySessionId,
 	]);
 	assert.equal(harness.created[1].setupCalls[0].filepath, "second");
+});
+
+test("EngineManager stores temporary thread allocations per session", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub(), {total_threads: 8});
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+	manager.assign_to_tab(secondaryId, 1);
+	manager.get_session(primarySession.sessionId).requestedThreads = 8;
+	manager.get_session(secondaryId).requestedThreads = 8;
+
+	let allocations = manager.allocate_resources(1, "balanced");
+
+	assert.deepEqual(allocations, {
+		[primarySession.sessionId]: 4,
+		[secondaryId]: 4,
+	});
+	assert.equal(manager.get_session(secondaryId).allocatedThreads, 4);
 });

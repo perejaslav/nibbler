@@ -1,6 +1,7 @@
 "use strict";
 
 const engine_lab = require("../modules/engine_lab");
+const engine_resource_scheduler = require("../modules/engine_resource_scheduler");
 
 function NewEngineManager(hub, options = null) {
 	let manager = Object.create(null);
@@ -13,6 +14,9 @@ function NewEngineManager(hub, options = null) {
 	manager.next_session_id = 1;
 	manager.engine_factory = settings.engine_factory || ((owner, engine_options) => NewEngine(owner, engine_options));
 	manager.profile_loader = settings.profile_loader || (profile_key => engineconfig[profile_key] || null);
+	manager.resource_scheduler = settings.resource_scheduler || engine_resource_scheduler.createEngineResourceScheduler({
+		totalThreads: settings.total_threads,
+	});
 
 	manager.primary = function() {
 		return this.primary_session ? this.primary_session.engine : null;
@@ -139,6 +143,14 @@ function NewEngineManager(hub, options = null) {
 
 	manager.get_consensus = function(tab_id, options = {}) {
 		return engine_lab.createConsensus(this.get_results(tab_id), options);
+	};
+
+	manager.allocate_resources = function(tab_id, mode = "balanced", custom = {}) {
+		let allocations = this.resource_scheduler.allocate(this.sessions_for_tab(tab_id), mode, custom);
+		for (let session of this.sessions_for_tab(tab_id)) {
+			session.allocatedThreads = allocations[session.sessionId];
+		}
+		return allocations;
 	};
 
 	manager.profile = function(profile_key) {
@@ -278,6 +290,8 @@ function NewEngineManager(hub, options = null) {
 			tabId: null,
 			analysisRequest: null,
 			resultsStore: engine_lab.createMultiPVStore(),
+			requestedThreads: 1,
+			allocatedThreads: 1,
 		};
 		this.sessions[session.sessionId] = session;
 		this.primary_session = session;
@@ -312,6 +326,8 @@ function NewEngineManager(hub, options = null) {
 			tabId: null,
 			analysisRequest: null,
 			resultsStore: engine_lab.createMultiPVStore(),
+			requestedThreads: 1,
+			allocatedThreads: 1,
 		};
 		session.event_sink = this.make_event_sink(session);
 		session.engine = this.engine_factory(this.hub, {
