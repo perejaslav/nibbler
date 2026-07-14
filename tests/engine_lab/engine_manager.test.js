@@ -333,3 +333,31 @@ test("EngineManager stores temporary thread allocations per session", () => {
 	});
 	assert.equal(manager.get_session(secondaryId).allocatedThreads, 4);
 });
+
+test("EngineManager advances game analysis after all sessions finish a position", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	let secondaryId = manager.create_session("second", "secondary");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+	manager.assign_to_tab(secondaryId, 1);
+	let primary = manager.get_session(primarySession.sessionId);
+	let secondary = manager.get_session(secondaryId);
+	primary.event_sink = manager.make_event_sink(primary);
+	for (let session of [primary, secondary]) {
+		session.engine.ever_received_uciok = true;
+		session.engine.ever_received_readyok = true;
+	}
+
+	assert.equal(manager.start_game_analysis(1, [{positionId: "p1", node: {id: "node-1"}}], {limit: 100}), true);
+	for (let session of [primary, secondary]) {
+		session.event_sink.onStateChanged(session.engine, {processGeneration: 1, searchState: "searching", searchId: 1});
+		session.event_sink.onInfo(session.engine, {processGeneration: 1, searchId: 1, multipv: 1, pv: ["e2e4"], score: {type: "cp", value: 20}});
+		session.event_sink.onBestmove(session.engine, {processGeneration: 1, searchId: 1, move: "e2e4"});
+	}
+
+	let status = manager.game_analysis_status(1);
+	assert.equal(status.done, true);
+	assert.equal(status.results.length, 1);
+	assert.equal(status.results[0].positionId, "p1");
+});
