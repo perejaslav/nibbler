@@ -31,6 +31,11 @@ const TAB_STATE_KEYS = [
 	"tick",
 	"explorer_objects_cache",
 	"explorer_cache_node_id",
+	"engine_session_ids",
+	"engine_group_id",
+	"background_analysis_enabled",
+	"comparison_mode",
+	"consensus_settings",
 ];
 
 function tab_title_for(tab) {
@@ -129,6 +134,7 @@ function NewHub() {
 
 	hub.looker.add_to_queue(hub.tree.node.board);		// Maybe make initial call to API such as ChessDN.cn...
 	Object.assign(hub, hub_props);
+	hub.engine_lab_view = NewEngineLabView(hub);
 	hub.refresh_active_tab_title();
 	hub.draw_tabs();
 	return hub;
@@ -1408,7 +1414,21 @@ let hub_props = {
 		if (!this.is_active_context()) {
 			return;
 		}
+		if (this.comparison_mode) {
+			this.draw_engine_lab();
+			return;
+		}
 		enginebox.innerHTML = SafeStringHTML(this.engine.name || "");
+	},
+
+	draw_engine_lab: function() {
+		if (this.engine_lab_view) this.engine_lab_view.draw();
+	},
+
+	toggle_comparison_mode: function() {
+		this.comparison_mode = !this.comparison_mode;
+		this.active_tab().comparison_mode = this.comparison_mode;
+		this.draw_enginebox();
 	},
 
 	draw_infobox: function() {
@@ -2882,6 +2902,9 @@ let hub_props = {
 			return;
 		case "multipv_up":
 			this.adjust_toolbar_multipv(1);
+			return;
+		case "engine_lab":
+			this.toggle_comparison_mode();
 			return;
 		}
 	},

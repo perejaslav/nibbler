@@ -109,6 +109,51 @@ body {
 	white-space: nowrap;
 }
 
+.engine-lab-panel {
+	white-space: normal;
+}
+
+.engine-lab-heading,
+.engine-lab-consensus {
+	margin-bottom: 0.35em;
+}
+
+.engine-lab-cards {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5em;
+}
+
+.engine-lab-card {
+	min-width: 18em;
+	padding: 0.35em;
+	border: 1px solid #555555;
+	background: #202020;
+}
+
+.engine-lab-card-title {
+	color: #ffffff;
+	font-weight: bold;
+}
+
+.engine-lab-card-state,
+.engine-lab-card-stats {
+	color: #aaaaaa;
+}
+
+.engine-lab-card-pv {
+	margin-top: 0.25em;
+	color: #dddddd;
+	white-space: normal;
+	word-break: break-word;
+}
+
+.engine-lab-candidate {
+	display: grid;
+	grid-template-columns: 6em 5em 6em;
+	gap: 0.5em;
+}
+
 #analysistoolbar {
 	grid-area: t;
 	margin: 0.5em 1em 0 1em;
