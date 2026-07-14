@@ -28,6 +28,7 @@ test("renderer loads EngineManager before Hub and keeps the primary session regi
 	assert.match(hub, /toggle_comparison_mode/);
 	assert.match(hub, /draw_engine_lab/);
 	assert.match(hub, /engine_lab_click/);
+	assert.match(hub, /add_engine_analysis/);
 	assert.match(start, /enginebox\.addEventListener/);
 	assert.match(css, /\.engine-lab-card/);
 	assert.match(css, /\.engine-lab-controls/);

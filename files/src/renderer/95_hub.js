@@ -1428,13 +1428,39 @@ let hub_props = {
 	engine_lab_click: function(event) {
 		let action = event.target.closest("[data-engine-lab-action]");
 		if (!action) return;
-		if (action.dataset.engineLabAction === "start") {
+		if (action.dataset.engineLabAction === "add") {
+			let results = this.engine_manager.get_results(this.active_tab().id);
+			let result = results[action.dataset.sessionId] && results[action.dataset.sessionId][0];
+			if (result) this.add_engine_analysis(action.dataset.sessionId, result);
+		} else if (action.dataset.engineLabAction === "start") {
 			let profile = document.getElementById("engine_lab_secondary_profile").value;
 			if (profile) this.engine_manager.start_comparison_for_tab(this.active_tab().id, this.engine.filepath, profile);
 		} else if (action.dataset.engineLabAction === "stop") {
 			this.engine_manager.stop_comparison();
 		}
 		this.draw_enginebox();
+	},
+
+	add_engine_analysis: function(session_id, result) {
+		if (!result || !Array.isArray(result.pv) || result.pv.length === 0) return false;
+		let illegal_reason = this.tree.node.board.sequence_illegal(result.pv);
+		if (illegal_reason) {
+			this.err_receive(illegal_reason);
+			return false;
+		}
+		let session = this.engine_manager.get_session(session_id);
+		let consensus = this.engine_manager.get_consensus(this.active_tab().id);
+		let engine_name = session ? (session.name || session.profileKey || session_id) : session_id;
+		let comment = engine_lab.createEngineAnalysisComment(result, engine_name, consensus.agreement.level);
+		this.undo_stack.wrap("Add engine analysis", () => {
+			this.tree.add_move_sequence(result.pv);
+			let lines = (this.tree.node.comment_after || "").split("\n").filter(line => line.indexOf("[%nibbler-engine ") !== 0 && line !== "");
+			lines.push(comment);
+			this.tree.node.comment_after = lines.join("\n");
+			this.tree.tree_version++;
+			this.tree.dom_from_scratch();
+		});
+		return true;
 	},
 
 	toggle_comparison_mode: function() {

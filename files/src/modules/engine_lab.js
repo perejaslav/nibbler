@@ -231,9 +231,25 @@ function createConsensus(resultsBySession, options = {}) {
 	};
 }
 
+function createEngineAnalysisComment(result, engineName, agreement) {
+	let safe_name = String(engineName || "Engine").replace(/[{}]/g, "");
+	let score = "—";
+	if (result && result.score && result.score.type === "mate") {
+		score = `M${result.score.value}`;
+	} else if (result && result.score && result.score.type === "cp") {
+		let pawns = result.score.value / 100;
+		score = `${pawns >= 0 ? "+" : ""}${pawns.toFixed(2)}`;
+	} else if (result && result.wdl) {
+		score = `${Math.round((result.wdl.win + result.wdl.draw * 0.5) / 10)}%`;
+	}
+	let pv = result && Array.isArray(result.pv) ? result.pv.join(" ") : "";
+	return `[%nibbler-engine ${safe_name}] score ${score} depth ${result && result.depth !== null && result.depth !== undefined ? result.depth : "—"} time ${result && result.timeMs !== null && result.timeMs !== undefined ? result.timeMs : "—"}ms nodes ${result && result.nodes !== null && result.nodes !== undefined ? result.nodes : "—"} pv ${pv} agreement ${agreement || "unknown"}`;
+}
+
 module.exports = {
 	createMultiPVStore,
 	createConsensus,
+	createEngineAnalysisComment,
 	normalizeScore,
 	parseInfoLine,
 };

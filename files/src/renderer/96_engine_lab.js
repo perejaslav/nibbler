@@ -26,6 +26,7 @@ function NewEngineLabView(hub) {
 			<div class="engine-lab-card-state">${safe(session.lifecycleState)} / ${safe(session.searchState)}</div>
 			<div class="engine-lab-card-stats">${safe(score_text(info))} | depth ${safe(info && info.depth)} | ${safe(info && info.nodes)} nodes | ${safe(info && info.nps)} n/s</div>
 			<div class="engine-lab-card-pv">${safe(pv)}</div>
+			<button data-engine-lab-action="add" data-session-id="${safe(session.sessionId)}" ${info && pv ? "" : "disabled"}>Add PV to tree</button>
 		</section>`;
 	}
 
