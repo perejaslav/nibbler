@@ -6,6 +6,7 @@ const test = require("node:test");
 const {
 	createMultiPVStore,
 	createConsensus,
+	createEngineAnalysisComment,
 	normalizeScore,
 	parseInfoLine,
 } = require("../../files/src/modules/engine_lab");
@@ -131,4 +132,17 @@ test("createConsensus combines candidate moves and reports agreement", () => {
 	assert.equal(result.bestMove, "e2e4");
 	assert.equal(result.agreement.level, "high");
 	assert.ok(result.candidates[0].averageQ > 0);
+});
+
+test("createEngineAnalysisComment creates a marked PGN comment", () => {
+	assert.equal(
+		createEngineAnalysisComment({
+			score: {type: "cp", value: 42},
+			depth: 30,
+			timeMs: 1200,
+			nodes: 500000,
+			pv: ["e2e4", "e7e5"],
+		}, "Stockfish", "high"),
+		"[%nibbler-engine Stockfish] score +0.42 depth 30 time 1200ms nodes 500000 pv e2e4 e7e5 agreement high"
+	);
 });
