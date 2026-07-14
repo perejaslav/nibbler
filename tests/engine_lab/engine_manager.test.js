@@ -296,3 +296,20 @@ test("EngineManager exposes consensus for a tab", () => {
 	assert.equal(consensus.bestMove, "e2e4");
 	assert.equal(consensus.agreement.support, 2);
 });
+
+test("EngineManager starts comparison and assigns both sessions to a tab", () => {
+	let harness = loadManager();
+	let manager = harness.NewEngineManager(makeHub());
+	let primarySession = manager.attach_primary(harness.makeEngine(), "first");
+	manager.assign_to_tab(primarySession.sessionId, 1);
+
+	let result = manager.start_comparison_for_tab(1, "first", "second");
+
+	assert.equal(result.primarySessionId, primarySession.sessionId);
+	assert.equal(manager.secondary_session_id(), result.secondarySessionId);
+	assert.deepEqual(manager.sessions_for_tab(1).map(session => session.sessionId), [
+		result.primarySessionId,
+		result.secondarySessionId,
+	]);
+	assert.equal(harness.created[1].setupCalls[0].filepath, "second");
+});
