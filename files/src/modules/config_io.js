@@ -136,6 +136,8 @@ exports.defaults = {
 	"never_grayout_infolines": false,
 	"suppress_ucinewgame": false,
 
+	"auto_analysis_time_ms": 10000,			// Time budget per position in Auto-evaluate line / backwards modes.
+
 	"show_engine_state": false,
 
 	"book_depth": 10,

@@ -1067,6 +1067,15 @@ function menu_build() {
 					}
 				},
 				{
+					label: translate.t("Auto-analysis time per position (ms)…"),
+					click: () => {
+						win.webContents.send("call", {
+							fn: "show_config_item_editor",
+							args: ["auto_analysis_time_ms", null, null],
+						});
+					}
+				},
+				{
 					type: "separator"
 				},
 				{

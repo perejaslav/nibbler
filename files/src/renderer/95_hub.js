@@ -1496,7 +1496,21 @@ let hub_props = {
 			this.engine.set_search_desired(null);
 			return;
 		}
-		this.engine.set_search_desired(node, this.node_limit(), engineconfig[this.engine.filepath].limit_by_time, node.searchmoves);
+
+		let limit = this.node_limit();
+		let by_time = engineconfig[this.engine.filepath].limit_by_time;
+
+		// In auto/back analysis, node_limit() returns the per-position time budget
+		// (config.auto_analysis_time_ms); make sure it is used as a time limit.
+
+		if (this.behaviour === "auto_analysis" || this.behaviour === "back_analysis") {
+			let budget = config.auto_analysis_time_ms;
+			if (typeof budget === "number" && budget >= 1) {
+				by_time = true;
+			}
+		}
+
+		this.engine.set_search_desired(node, limit, by_time, node.searchmoves);
 	},
 
 	// ---------------------------------------------------------------------------------------------------------------------
@@ -1672,10 +1686,21 @@ let hub_props = {
 		case "play_white":
 		case "play_black":
 		case "self_play":
+
+			cfg_value = engineconfig[this.engine.filepath].search_nodes_special;
+			break;
+
 		case "auto_analysis":
 		case "back_analysis":
 
-			cfg_value = engineconfig[this.engine.filepath].search_nodes_special;
+			// Auto/back analysis uses a fixed time budget per position so that the
+			// line always advances, even when search_nodes_special is huge (e.g. 1e9).
+
+			cfg_value = config.auto_analysis_time_ms;
+
+			if (typeof cfg_value !== "number" || cfg_value < 1) {
+				cfg_value = engineconfig[this.engine.filepath].search_nodes_special;	// Fallback to the old behaviour.
+			}
 			break;
 
 		default:

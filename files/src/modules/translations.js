@@ -1587,6 +1587,7 @@ let translations = {
 			"Halt": "Стоп",
 			"Auto-evaluate line": "Авто-анализ линии",
 			"Auto-evaluate line, backwards": "Авто-анализ линии назад",
+			"Auto-analysis time per position (ms)…": "Время анализа позиции (мс)…",
 			"Show focus (searchmoves) buttons": "Показать кнопки фокуса",
 			"Clear focus": "Очистить фокус",
 			"Invert focus": "Инвертировать фокус",
