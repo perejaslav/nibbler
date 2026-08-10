@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.8.0
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.9.0
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -27,6 +27,16 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v2.8.
 - Analysis toolbar with quick access to engine controls, navigation, board flip, MultiPV, and focus clearing.
 - Visual UCI engine settings dialog for standard engine options.
 - Undo/Redo stack for tree operations (Edit menu, Ctrl+Z / Ctrl+Y).
+
+## What's new in 2.9.0
+
+Version 2.9.0 makes Auto-evaluate line and Auto-evaluate line, backwards always advance through the game.
+
+- Each position is now searched for a fixed time budget (10 seconds by default) instead of the per-engine special node limit, so the line keeps stepping even when the engine's node limit is enormous (e.g. 1 billion nodes, which previously stalled the auto modes indefinitely).
+- The budget is configurable via the Analysis menu: "Auto-analysis time per position (ms)…".
+- Ordinary analysis (Go/Lock) and play modes are unchanged and still use the configured node/time limits.
+
+The Windows build for this release is packaged as `nibbler-2.9.0-windows.zip`.
 
 ## What's new in 2.8.0
 
@@ -83,12 +93,12 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-2.8.0-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-2.9.0-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
 
-The 2.8.0 Windows build uses Electron 9.4.4.
+The 2.9.0 Windows build uses Electron 9.4.4.
 
 ### Run from source
 
@@ -227,8 +237,8 @@ npx electron .
 
 Current release:
 
-- v2.8.0 — https://github.com/perejaslav/nibbler/releases/tag/v2.8.0
-- Windows package: `releases/nibbler-2.8.0-windows.zip`
+- v2.9.0 — https://github.com/perejaslav/nibbler/releases/tag/v2.9.0
+- Windows package: `releases/nibbler-2.9.0-windows.zip`
 
 All releases:
 
