@@ -2612,6 +2612,12 @@ function menu_build() {
 					}
 				},
 				{
+					label: translate.t("Benchmark..."),
+					click: () => {
+						win.webContents.send("call", "show_engine_benchmark");
+					}
+				},
+				{
 					label: translate.t("Weights"),
 					submenu: [
 						{

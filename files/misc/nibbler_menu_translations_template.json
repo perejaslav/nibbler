@@ -127,6 +127,7 @@
 		"Engine": "TODO",								// Top level menu item for engine settings
 			"Choose engine...": "TODO",						// Choose engine via file picker
 			"Choose known engine...": "TODO",				// Choose engine from a list of previously used engines
+			"Benchmark...": "TODO",							// Open the engine benchmark dialog (fixed positions, fixed time each)
 			"Weights": "TODO",								// Choose neural net weight file
 				"Lc0 WeightsFile...": "TODO",					// ... For Lc0
 				"Stockfish EvalFile...": "TODO",				// ... For Stockfish

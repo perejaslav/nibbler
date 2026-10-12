@@ -360,6 +360,12 @@ input[type=text]:focus {
 	color: #eeeeee;
 }
 
+.benchmark_report {
+	margin: 0.5em 0 0;
+	overflow-x: auto;
+	white-space: pre;
+}
+
 .uci_option_control input,
 .uci_option_control select {
 	background: #101010;

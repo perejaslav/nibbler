@@ -193,6 +193,7 @@ function NewHub() {
 	hub.looker.add_to_queue(hub.tree.node.board);		// Maybe make initial call to API such as ChessDN.cn...
 	Object.assign(hub, hub_props);
 	hub.engine_lab_view = NewEngineLabView(hub);
+	hub.engine_benchmark_view = NewEngineBenchmarkView(hub);
 	hub.refresh_active_tab_title();
 	hub.draw_tabs();
 	return hub;
@@ -1913,6 +1914,10 @@ let hub_props = {
 		this.engine.send_ack_setoption(name);
 	},
 
+	show_engine_benchmark: function() {
+		this.engine_benchmark_view.open();
+	},
+
 	show_uci_engine_settings: function(errors) {
 		if (!this.engine || !this.engine.filepath) {
 			fullbox_content.innerHTML = `<span class="yellow">No current engine is selected.</span>`;
@@ -3133,6 +3138,12 @@ let hub_props = {
 
 		let n;
 
+		// Engine benchmark dialog...
+
+		if (this.engine_benchmark_view && this.engine_benchmark_view.click(event)) {
+			return;
+		}
+
 		// Config item editor...
 
 		if (EventPathString(event, "config_item_save") !== null) {
@@ -3548,6 +3559,7 @@ let hub_props = {
 		} catch (err) {
 			console.log("Could not save last chess session:", err);
 		}
+		if (this.engine_benchmark_view) this.engine_benchmark_view.shutdown();
 		this.engine_manager.stop_all();
 		this.save_config();
 		this.save_engineconfig();
