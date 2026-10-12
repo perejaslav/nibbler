@@ -478,6 +478,16 @@ let hub_props = {
 			tabbar.removeChild(tabbar.firstChild);
 		}
 
+		// Only shown with Mica, where the menu bar is hidden (see nibbler.css, html.mica).
+		let app_menu = document.createElement("button");
+		app_menu.className = "app_menu_button";
+		app_menu.id = "app_menu";
+		app_menu.type = "button";
+		app_menu.setAttribute("aria-label", "Menu");
+		app_menu.title = "Menu";
+		app_menu.textContent = "≡";
+		tabbar.appendChild(app_menu);
+
 		for (let tab of this.tab_manager.tabs) {
 			let item = document.createElement("span");
 			item.className = "tab_item";
@@ -539,6 +549,15 @@ let hub_props = {
 	},
 
 	tabbar_click: function(event) {
+
+		let app_menu = event.target.closest("#app_menu");
+		if (app_menu) {
+			event.preventDefault();
+			event.stopPropagation();
+			let rect = app_menu.getBoundingClientRect();
+			ipcRenderer.send("show_app_menu", rect.left, rect.bottom);
+			return;
+		}
 
 		let close = event.target.closest("[data-tab-close-id]");
 		if (close) {

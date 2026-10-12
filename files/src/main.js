@@ -32,6 +32,7 @@ const alert = require("./modules/alert_main");
 const custom_uci = require("./modules/custom_uci");
 const engineconfig_io = require("./modules/engineconfig_io");
 const messages = require("./modules/messages");
+const os = require("os");
 const position_annotations = require("./modules/position_annotations");
 const path = require("path");
 const running_as_electron = require("./modules/running_as_electron");
@@ -262,6 +263,21 @@ function app_icon_path() {
 	return path.join(res_dir, process.platform === "win32" ? "nibbler.ico" : "nibbler.png");
 }
 
+// Mica is a Windows 11 backdrop material, available from 22H2 (build 22621).
+
+function mica_supported() {
+	if (process.platform !== "win32") {
+		return false;
+	}
+	let build = parseInt(os.release().split(".")[2], 10);
+	return build >= 22621;
+}
+
+// With Mica, the tab bar becomes the title bar (see nibbler.css, html.mica #tabbar).
+// Windows draws the caption buttons over its right end, so the height must match the CSS.
+
+const mica_titlebar_height = 36;
+
 function startup() {
 
 	// Our own AppUserModelID makes Windows group taskbar buttons as Nibbler, not as generic Electron.
@@ -272,15 +288,34 @@ function startup() {
 
 	let desired_zoomfactor = 1 / electron.screen.getPrimaryDisplay().scaleFactor;
 
+	// Mica only shows through a transparent window, and a transparent window loses its native frame.
+	// So with Mica we hide the title bar and draw the caption buttons via titleBarOverlay instead.
+	// The renderer then clears its own backgrounds (see nibbler.css, html.mica).
+	let mica = mica_supported();
+
+	let mica_options = mica ? {
+		autoHideMenuBar: true,
+		backgroundMaterial: "mica",
+		titleBarOverlay: {
+			color: "#00000000",
+			symbolColor: "#ffffff",
+			height: mica_titlebar_height
+		},
+		titleBarStyle: "hidden",
+		transparent: true
+	} : {};
+
 	win = new electron.BrowserWindow({
+		...mica_options,
 		width: config.width,
 		height: config.height,
-		backgroundColor: "#000000",
+		backgroundColor: "#282828",
 		resizable: true,
 		show: false,
 		useContentSize: true,
 		icon: app_icon_path(),
 		webPreferences: {
+			additionalArguments: mica ? ["--nibbler-mica"] : [],
 			backgroundThrottling: false,
 			contextIsolation: false,
 			nodeIntegration: true,
@@ -294,6 +329,12 @@ function startup() {
 			win.webContents.setZoomFactor(desired_zoomfactor);	// This seems to work, note issue 10572 above.
 		} catch (err) {
 			win.webContents.zoomFactor = desired_zoomfactor;	// The method above "will be removed" in future.
+		}
+		if (mica) {
+			// Windows draws three caption buttons, 138 DIP wide, over the top right. Keep the tab bar clear of them.
+			// CSS pixels are DIP divided by the zoom factor, so the inset depends on it.
+			let inset = Math.ceil(138 / desired_zoomfactor) + 8;
+			win.webContents.insertCSS(`html.mica #tabbar { padding-right: ${inset}px !important; }`);
 		}
 		win.show();
 		win.focus();
@@ -409,6 +450,22 @@ function startup() {
 
 	electron.ipcMain.on("native_paste", () => {
 		win.webContents.paste();
+	});
+
+	// With Mica the menu bar is hidden, so the tab bar's menu button opens the application menu as a popup.
+	// Renderer coordinates are CSS pixels; popup wants DIPs, which are scaled by the page zoom factor.
+
+	electron.ipcMain.on("show_app_menu", (event, x, y) => {
+		let menu = electron.Menu.getApplicationMenu();
+		if (!menu) {
+			return;
+		}
+		let zoom = event.sender.getZoomFactor();
+		menu.popup({
+			window: win,
+			x: Math.round(x * zoom),
+			y: Math.round(y * zoom)
+		});
 	});
 
 	electron.ipcMain.on("show_movelist_context_menu", (event, msg) => {

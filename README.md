@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.2.0
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.0
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -33,6 +33,17 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.2.
 - Automatic restoration of the last chess session, including all open games, variations, annotations, selected moves and active tab.
 
 The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's user-data directory (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
+
+## What's new in 3.3.0
+
+- **New look on Windows.** A dark palette in the style of Windows 11: layered controls, Segoe UI for the interface, and a monospace font kept for FEN, PGN, the move list and engine output. The palette applies on every Windows version.
+- **Mica backdrop on Windows 11 22H2 and later.** The window shows the system Mica material behind a tinted layer. The tab bar is the title bar: drag it by an empty part to move the window, and the minimize, maximize and close buttons are Windows' own.
+- **Menu button in the tab bar.** With Mica the menu bar is hidden, so a `≡` button opens the same menu. Pressing Alt also shows the menu bar.
+- **New-tab button** sits right after the last tab, as in Windows 11 Explorer.
+
+Everything from 3.2.0 is included. Earlier versions kept their classic window frame.
+
+The Windows build for this release is packaged as `nibbler-3.3.0-windows.zip` (Electron 44.7.0).
 
 ## What's new in 3.1.1
 
@@ -237,7 +248,7 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-3.2.0-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-3.3.0-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
@@ -383,8 +394,8 @@ npx electron .
 
 Current release:
 
-- v3.2.0 — https://github.com/perejaslav/nibbler/releases/tag/v3.2.0
-- Windows package: `releases/nibbler-3.2.0-windows.zip`
+- v3.3.0 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.0
+- Windows package: `releases/nibbler-3.3.0-windows.zip`
 
 All releases:
 

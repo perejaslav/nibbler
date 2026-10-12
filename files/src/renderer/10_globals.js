@@ -20,6 +20,12 @@ const fullbox_content = document.getElementById("fullbox_content");
 const promotiontable = document.getElementById("promotiontable");
 const statusbox = document.getElementById("statusbox");
 
+// Main passes this flag when the Windows 11 Mica backdrop is on. See nibbler.css, html.mica.
+
+if (typeof process !== "undefined" && process.argv.includes("--nibbler-mica")) {
+	document.documentElement.classList.add("mica");
+}
+
 // If require isn't available, we're in a browser:
 
 try {
