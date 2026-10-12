@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.1.0
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.1.1
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -33,6 +33,16 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.1.
 - Automatic restoration of the last chess session, including all open games, variations, annotations, selected moves and active tab.
 
 The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's user-data directory (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
+
+## What's new in 3.1.1
+
+- **Pasting a game adds it as a variation again.** Ctrl+V and the Paste button merge a PGN from the clipboard into the current tree, and the last move is shown. Existing comments and annotations are no longer overwritten.
+- **Annotations of a pasted game come with it.** Comments, NAGs, `!`/`?` glyphs, clock times and arrows are carried into the variation. A glyph written as its own word, such as `e4 !?`, is read too. The game's tags are written as a comment before the first new move, since a variation has no headers of its own. An `[%eval]` is not copied onto a move that already has an engine line; the engine line wins.
+- **Another start position or a FEN no longer breaks the tree.** A game that starts from a different position opens in an empty tab or a new tab, instead of showing an alert. A FEN replaces the current position only if the tab holds nothing worth keeping.
+
+Everything from 3.1.0 is included.
+
+The Windows build for this release is packaged as `nibbler-3.1.1-windows.zip` (Electron 44.7.0).
 
 ## What's new in 3.1.0
 
@@ -227,7 +237,7 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-3.1.0-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-3.1.1-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
@@ -373,8 +383,8 @@ npx electron .
 
 Current release:
 
-- v3.1.0 — https://github.com/perejaslav/nibbler/releases/tag/v3.1.0
-- Windows package: `releases/nibbler-3.1.0-windows.zip`
+- v3.1.1 — https://github.com/perejaslav/nibbler/releases/tag/v3.1.1
+- Windows package: `releases/nibbler-3.1.1-windows.zip`
 
 All releases:
 
