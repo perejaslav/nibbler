@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.2
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.3
 
 ![Screenshot](docs/images/screenshot.png?v=3.3.2)
 
@@ -32,11 +32,11 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.
 - Modern Electron 44 (Chromium 152) platform.
 - Automatic restoration of the last chess session, including all open games, variations, annotations, selected moves and active tab.
 
-The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's user-data directory (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
+The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's `data` folder (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
 
-## What's new in 3.3.2
+## What's new in 3.3.3
 
-- **Focus dropdown on the toolbar.** Click `Focus ▾` to choose Clear focus or Invert focus, the same items as in the app menu. Each item is enabled when it applies.
+- **Fully portable.** The Windows build keeps all its data in a `data` folder next to `nibbler.exe`: settings (`config.json`), engines (`engines.json`), the last session, custom UCI scripts and the browser cache. Nothing is written to `%APPDATA%`. Copy the whole folder to another place or a USB drive, and it keeps working with the same settings.
 
 ## Installation
 
@@ -44,14 +44,18 @@ The current chess session is saved automatically every three seconds and when Ni
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-3.3.2-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-3.3.3-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
 
 The 3.x Windows builds use Electron 44.7.0. Builds up to 2.9.5 used Electron 9.4.4.
 
-Upgrading from 2.x: extract the new archive and run it. Settings, engines and the last session stay in the same user-data folder (`%APPDATA%\Nibbler`). To be safe, copy that folder before the first launch; to roll back, run the old build again.
+Nibbler 3.3.3 and later is portable: all data lives in the `data` folder next to `nibbler.exe`. Extract it to a folder you can write to (not `Program Files`).
+
+Upgrading from 3.3.2 or older: these versions kept data in `%APPDATA%\Nibbler`. Close Nibbler, then move that folder's contents into the `data` folder next to the new `nibbler.exe` (create the folder if needed). Without this step, the new build starts with default settings. Upgrading to a newer portable build: copy the old `data` folder next to the new `nibbler.exe`.
+
+When you run from source (`electron .`), data still goes to `%APPDATA%\Nibbler`.
 
 ### Run from source
 
@@ -190,8 +194,8 @@ npx electron .
 
 Current release:
 
-- v3.3.2 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.2
-- Windows package: `releases/nibbler-3.3.2-windows.zip`
+- v3.3.3 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.3
+- Windows package: `releases/nibbler-3.3.3-windows.zip`
 
 All releases:
 
