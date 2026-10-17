@@ -66,6 +66,28 @@ let loaded_evalfile = "";
 let have_warned_hw_accel_setting = false;
 let movelist_context_menu_open = false;
 
+// Shared by the app menu (no state, so everything is enabled) and the toolbar Focus dropdown.
+
+function build_focus_menu_items(msg) {
+	return [
+		{
+			label: translate.t("Clear focus"),
+			enabled: msg.clear_enabled !== false,
+			click: () => {
+				win.webContents.send("call", "clear_searchmoves");
+			}
+		},
+		{
+			label: translate.t("Invert focus"),
+			accelerator: "CommandOrControl+I",
+			enabled: msg.invert_enabled !== false,
+			click: () => {
+				win.webContents.send("call", "invert_searchmoves");
+			}
+		},
+	];
+}
+
 function build_movelist_context_menu(msg) {
 	return electron.Menu.buildFromTemplate([
 		{
@@ -499,6 +521,16 @@ function startup() {
 			movelist_context_menu_open = false;
 			throw err;
 		}
+	});
+
+	electron.ipcMain.on("show_focus_menu", (event, msg, x, y) => {
+		// Same coordinate handling as show_app_menu: renderer CSS pixels to DIPs.
+		let zoom = event.sender.getZoomFactor();
+		electron.Menu.buildFromTemplate(build_focus_menu_items(msg || {})).popup({
+			window: win,
+			x: Math.round(x * zoom),
+			y: Math.round(y * zoom)
+		});
 	});
 
 	electron.ipcMain.on("ack_engine", (event, msg) => {
@@ -1229,19 +1261,7 @@ function menu_build() {
 						});
 					}
 				},
-				{
-					label: translate.t("Clear focus"),
-					click: () => {
-						win.webContents.send("call", "clear_searchmoves");
-					}
-				},
-				{
-					label: translate.t("Invert focus"),
-					accelerator: "CommandOrControl+I",
-					click: () => {
-						win.webContents.send("call", "invert_searchmoves");
-					}
-				},
+				...build_focus_menu_items({}),
 				{
 					type: "separator"
 				},
