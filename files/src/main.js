@@ -7,11 +7,51 @@ const electron = require("electron");
 
 electron.app.commandLine.appendSwitch("js-flags", "--expose_gc");
 
-// Portable mode: keep all user data in a "data" folder next to the executable.
+// Data location: a "data" folder next to the executable (portable) or the user profile.
+// Whichever folder exists wins; if neither does, ask once. The created folder is the remembered choice.
 // Must happen before config_io is required, since it reads userData at load time.
 
 if (electron.app.isPackaged) {
-	electron.app.setPath("userData", require("path").join(require("path").dirname(process.execPath), "data"));
+	const fs = require("fs");
+	const path = require("path");
+	const portable_dir = path.join(path.dirname(process.execPath), "data");
+	const profile_dir = path.join(electron.app.getPath("appData"), electron.app.getName());	// Not getPath("userData"): that creates the folder.
+	const first_run_dir = path.join(electron.app.getPath("temp"), "nibbler-first-run");
+	try {
+		fs.rmSync(first_run_dir, {recursive: true, force: true});		// Left over from the first-run dialog.
+	} catch (err) {
+		// Ignore.
+	}
+	if (fs.existsSync(portable_dir)) {
+		electron.app.setPath("userData", portable_dir);
+	} else if (fs.existsSync(profile_dir)) {
+		electron.app.setPath("userData", profile_dir);
+	} else {
+		// First run: ask, create the chosen folder, restart. Dialogs need a ready app, and a ready app writes
+		// Chromium files into userData, so point it at a temp folder meanwhile. Skip the rest of main.js.
+		electron.app.setPath("userData", first_run_dir);
+		electron.app.whenReady().then(() => {
+			let choice = electron.dialog.showMessageBoxSync({
+				type: "question",
+				title: "Nibbler",
+				message: "Where should Nibbler keep its settings and data?",
+				detail: `Portable: ${portable_dir}\nUser profile: ${profile_dir}\n\nTo change this later, move the folder to the other place.`,
+				buttons: ["Portable (next to nibbler.exe)", "User profile"],
+				defaultId: 0,
+				cancelId: 0,
+				noLink: true,
+			});
+			try {
+				fs.mkdirSync(choice === 1 ? profile_dir : portable_dir, {recursive: true});
+			} catch (err) {
+				electron.dialog.showErrorBox("Nibbler", `Cannot create ${portable_dir}\n${err.message}\n\nUsing the user profile instead.`);
+				fs.mkdirSync(profile_dir, {recursive: true});
+			}
+			electron.app.relaunch();
+			electron.app.exit(0);
+		});
+		return;		// CommonJS allows a top-level return.
+	}
 }
 
 // Config...

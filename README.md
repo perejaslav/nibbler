@@ -53,7 +53,9 @@ The 3.x Windows builds use Electron 44.7.0. Builds up to 2.9.5 used Electron 9.4
 
 Nibbler 3.3.3 and later is portable: all data lives in the `data` folder next to `nibbler.exe`. Extract it to a folder you can write to (not `Program Files`).
 
-Upgrading from 3.3.2 or older: these versions kept data in `%APPDATA%\Nibbler`. Close Nibbler, then move that folder's contents into the `data` folder next to the new `nibbler.exe` (create the folder if needed). Without this step, the new build starts with default settings. Upgrading to a newer portable build: copy the old `data` folder next to the new `nibbler.exe`.
+On the first launch, when neither `data` next to `nibbler.exe` nor `%APPDATA%\Nibbler` exists, Nibbler asks where to keep its data: portable (`data` folder) or the user profile (`%APPDATA%\Nibbler`). It creates the chosen folder and restarts. Later launches use whichever folder exists; `data` wins if both do. To switch, move the folder to the other place.
+
+Upgrading from 3.3.2 or older: these versions kept data in `%APPDATA%\Nibbler`, so the new build keeps using it without asking. To go portable, close Nibbler and move that folder's contents into a `data` folder next to the new `nibbler.exe`. Upgrading a portable install: copy the old `data` folder next to the new `nibbler.exe`.
 
 When you run from source (`electron .`), data still goes to `%APPDATA%\Nibbler`.
 
