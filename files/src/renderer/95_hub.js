@@ -3142,8 +3142,8 @@ let hub_props = {
 		case "flip":
 			this.toggle_flip();
 			return;
-		case "clear_focus":
-			this.clear_searchmoves();
+		case "focus_menu":
+			this.show_focus_menu();
 			return;
 		case "multipv_down":
 			this.adjust_toolbar_multipv(-1);
@@ -3378,6 +3378,14 @@ let hub_props = {
 		this.handle_search_params_change();
 	},
 
+	show_focus_menu: function() {
+		let rect = document.getElementById("toolbar_focus_menu").getBoundingClientRect();
+		ipcRenderer.send("show_focus_menu", {
+			clear_enabled: this.tree.node.searchmoves.length > 0,
+			invert_enabled: config.searchmoves_buttons,
+		}, rect.left, rect.bottom);
+	},
+
 	toolbar_multipv_value: function() {
 		let engine_entry = engineconfig[this.engine.filepath];
 		if (engine_entry && engine_entry.options && typeof engine_entry.options["MultiPV"] === "number") {
@@ -3413,7 +3421,7 @@ let hub_props = {
 		let lock_button = document.getElementById("toolbar_lock");
 		let auto_button = document.getElementById("toolbar_auto");
 		let return_button = document.getElementById("toolbar_return");
-		let clear_focus_button = document.getElementById("toolbar_clear_focus");
+		let focus_menu_button = document.getElementById("toolbar_focus_menu");
 		let multipv_down_button = document.getElementById("toolbar_multipv_down");
 		let multipv_up_button = document.getElementById("toolbar_multipv_up");
 		let busy_elsewhere = this.engine_busy_elsewhere();
@@ -3433,8 +3441,8 @@ let hub_props = {
 		if (return_button) {
 			return_button.disabled = !this.leela_lock_node;
 		}
-		if (clear_focus_button) {
-			clear_focus_button.disabled = (this.tree.node.searchmoves.length === 0);
+		if (focus_menu_button) {
+			focus_menu_button.disabled = !config.searchmoves_buttons;
 		}
 		if (multipv_down_button) {
 			multipv_down_button.disabled = (this.toolbar_multipv_value() <= 1);
