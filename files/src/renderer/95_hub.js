@@ -1508,7 +1508,7 @@ let hub_props = {
 			this.draw_engine_lab();
 			return;
 		}
-		enginebox.innerHTML = SafeStringHTML(this.engine.name || "");
+		enginebox.innerHTML = `<span class="engine-switch">${SafeStringHTML(this.engine.name || "")}</span>`;
 	},
 
 	draw_engine_lab: function() {
@@ -1516,6 +1516,10 @@ let hub_props = {
 	},
 
 	engine_lab_click: function(event) {
+		if (event.target.closest(".engine-switch")) {			// Clicking the engine name opens the known engines list.
+			this.show_fast_engine_chooser();
+			return;
+		}
 		let action = event.target.closest("[data-engine-lab-action]");
 		if (!action) return;
 		if (action.dataset.engineLabAction === "add") {

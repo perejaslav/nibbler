@@ -203,6 +203,10 @@ html.mica .tab_item_active:hover {
 	white-space: nowrap;
 }
 
+.engine-switch {
+	cursor: pointer;
+}
+
 .engine-lab-panel {
 	white-space: normal;
 }
