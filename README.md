@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.1
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.2
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -33,6 +33,12 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.
 - Automatic restoration of the last chess session, including all open games, variations, annotations, selected moves and active tab.
 
 The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's user-data directory (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
+
+## What's new in 3.3.2
+
+- **Focus dropdown on the toolbar.** Click `Focus ▾` to choose Clear focus or Invert focus, the same items as in the app menu. Each item is enabled when it applies.
+
+Everything from 3.3.1 is included.
 
 ## What's new in 3.3.1
 
@@ -254,7 +260,7 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-3.3.1-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-3.3.2-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
@@ -400,8 +406,8 @@ npx electron .
 
 Current release:
 
-- v3.3.1 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.1
-- Windows package: `releases/nibbler-3.3.1-windows.zip`
+- v3.3.2 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.2
+- Windows package: `releases/nibbler-3.3.2-windows.zip`
 
 All releases:
 
