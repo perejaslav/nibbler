@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.3
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.4
 
 ![Screenshot](docs/images/screenshot.png?v=3.3.2)
 
@@ -34,9 +34,11 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.
 
 The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's `data` folder (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
 
-## What's new in 3.3.3
+## What's new in 3.3.4
 
-- **Fully portable.** The Windows build keeps all its data in a `data` folder next to `nibbler.exe`: settings (`config.json`), engines (`engines.json`), the last session, custom UCI scripts and the browser cache. Nothing is written to `%APPDATA%`. Copy the whole folder to another place or a USB drive, and it keeps working with the same settings.
+- **Choose where your data lives.** On the first launch, Nibbler asks whether to keep its settings and data portable (a `data` folder next to `nibbler.exe`) or in the user profile (`%APPDATA%\Nibbler`). It creates the chosen folder and restarts. After that it never asks again: it uses whichever folder exists, `data` first.
+- Existing installs are not asked: a `data` folder or an old `%APPDATA%\Nibbler` profile is used as is.
+- Portable mode (3.3.3) keeps everything in `data`: settings, engines, the last session, custom UCI scripts and the browser cache. Copy the whole folder to another place or a USB drive, and it keeps working with the same settings.
 
 ## Installation
 
@@ -44,7 +46,7 @@ The current chess session is saved automatically every three seconds and when Ni
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-3.3.3-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-3.3.4-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
@@ -196,8 +198,8 @@ npx electron .
 
 Current release:
 
-- v3.3.3 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.3
-- Windows package: `releases/nibbler-3.3.3-windows.zip`
+- v3.3.4 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.4
+- Windows package: `releases/nibbler-3.3.4-windows.zip`
 
 All releases:
 
