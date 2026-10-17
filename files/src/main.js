@@ -7,6 +7,13 @@ const electron = require("electron");
 
 electron.app.commandLine.appendSwitch("js-flags", "--expose_gc");
 
+// Portable mode: keep all user data in a "data" folder next to the executable.
+// Must happen before config_io is required, since it reads userData at load time.
+
+if (electron.app.isPackaged) {
+	electron.app.setPath("userData", require("path").join(require("path").dirname(process.execPath), "data"));
+}
+
 // Config...
 
 const config_io = require("./modules/config_io");
