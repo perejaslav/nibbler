@@ -6,7 +6,7 @@ It runs an engine in the background, continuously evaluates the current position
 
 Current maintained fork: https://github.com/perejaslav/nibbler
 
-Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.0
+Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.1
 
 ![Screenshot](docs/images/screenshot.png)
 
@@ -33,6 +33,12 @@ Latest Windows release: https://github.com/perejaslav/nibbler/releases/tag/v3.3.
 - Automatic restoration of the last chess session, including all open games, variations, annotations, selected moves and active tab.
 
 The current chess session is saved automatically every three seconds and when Nibbler closes normally. On the next launch, your game tabs and selected positions are restored. Snapshots are stored in `last-session.json` in Nibbler's user-data directory (with a `.bak` fallback); no manual PGN export is needed. Engine searches are not resumed automatically.
+
+## What's new in 3.3.1
+
+- **Engine name opens the engine list.** Click the engine name above the board to open the list of known engines, the same as Engine -> Choose known engine. Click an engine to load it; right-click removes an engine from the list, unless it is the active one.
+
+Everything from 3.3.0 is included.
 
 ## What's new in 3.3.0
 
@@ -248,7 +254,7 @@ https://github.com/perejaslav/nibbler/releases/tag/v2.7.2
 
 1. Open the latest release page:
    https://github.com/perejaslav/nibbler/releases
-2. Download `nibbler-3.3.0-windows.zip` or the newest available Windows archive.
+2. Download `nibbler-3.3.1-windows.zip` or the newest available Windows archive.
 3. Extract the archive to a folder of your choice.
 4. Run `nibbler.exe`.
 5. Configure your engine path from inside Nibbler if needed.
@@ -394,8 +400,8 @@ npx electron .
 
 Current release:
 
-- v3.3.0 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.0
-- Windows package: `releases/nibbler-3.3.0-windows.zip`
+- v3.3.1 — https://github.com/perejaslav/nibbler/releases/tag/v3.3.1
+- Windows package: `releases/nibbler-3.3.1-windows.zip`
 
 All releases:
 
